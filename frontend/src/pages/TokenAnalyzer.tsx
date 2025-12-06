@@ -8,6 +8,7 @@ import { MetricCard } from '../components/MetricCard';
 import { RiskAlerts } from '../components/RiskAlerts';
 import { MarketSentiment } from '../components/MarketSentiment';
 import { LiveActivityFeed } from '../components/LiveActivityFeed';
+import { AddressLink } from '../components/AddressLink';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title);
 
@@ -297,7 +298,9 @@ export default function TokenAnalyzer() {
                           {trade.tradeType}
                         </span>
                       </td>
-                      <td className="py-3 text-white/70 font-mono text-sm">{trade.trader.slice(0, 16)}...</td>
+                      <td className="py-3 text-white/70 font-mono text-sm">
+                        <AddressLink address={trade.trader} truncate={16} />
+                      </td>
                       <td className="py-3 text-white font-semibold">{trade.amount} tokens</td>
                       <td className="py-3 text-cyan-400 font-mono">{parseFloat(trade.pricePerUnit).toFixed(6)}</td>
                       <td className="py-3 text-white/40 text-sm">{trade.tick.toLocaleString()}</td>
@@ -333,7 +336,9 @@ export default function TokenAnalyzer() {
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="py-3 text-white/70 font-mono text-sm">{holder.address.slice(0, 20)}...</td>
+                      <td className="py-3 text-white/70 font-mono text-sm">
+                        <AddressLink address={holder.address} truncate={20} />
+                      </td>
                       <td className="py-3 text-white font-semibold">{holder.balance} tokens</td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">

@@ -206,9 +206,9 @@ export class QueryAPISeeder {
           tokenName: assetName,
           tradeType: operation,
           trader: tx.source,
-          price: price,
-          amount: shares,
-          totalValue: totalValue,
+          price: price.toString(),
+          amount: shares.toString(),
+          totalValue: totalValue.toString(),
           pricePerUnit: Number(price),
         };
 

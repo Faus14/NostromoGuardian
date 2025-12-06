@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS indexed_ticks (
   timestamp TIMESTAMP NOT NULL,
   transactions_count INTEGER DEFAULT 0,
   qx_transactions_count INTEGER DEFAULT 0,
-  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_indexed_ticks_timestamp (timestamp)
+  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Stores all QX trades (BUY/SELL operations)
@@ -39,14 +38,7 @@ CREATE TABLE IF NOT EXISTS trades (
   total_value NUMERIC(40, 0) NOT NULL,
   price_per_unit DECIMAL(20, 10) NOT NULL,
   
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  INDEX idx_trades_tick (tick),
-  INDEX idx_trades_token (token_issuer, token_name),
-  INDEX idx_trades_trader (trader),
-  INDEX idx_trades_timestamp (timestamp),
-  INDEX idx_trades_type (trade_type),
-  INDEX idx_trades_composite (token_issuer, token_name, timestamp)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Stores current holder balances and statistics
@@ -73,12 +65,7 @@ CREATE TABLE IF NOT EXISTS holders (
   
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
-  UNIQUE(address, token_issuer, token_name),
-  INDEX idx_holders_token (token_issuer, token_name),
-  INDEX idx_holders_address (address),
-  INDEX idx_holders_balance (balance DESC),
-  INDEX idx_holders_whale (is_whale),
-  INDEX idx_holders_percentage (percentage DESC)
+  UNIQUE(address, token_issuer, token_name)
 );
 
 -- Historical snapshots of holder balances (for time-series analysis)
@@ -89,11 +76,7 @@ CREATE TABLE IF NOT EXISTS balance_snapshots (
   token_name VARCHAR(16) NOT NULL,
   balance NUMERIC(40, 0) NOT NULL,
   tick BIGINT NOT NULL,
-  timestamp TIMESTAMP NOT NULL,
-  
-  INDEX idx_snapshots_token_time (token_issuer, token_name, timestamp),
-  INDEX idx_snapshots_address (address),
-  INDEX idx_snapshots_tick (tick)
+  timestamp TIMESTAMP NOT NULL
 );
 
 -- Aggregated token metrics (updated periodically)
@@ -140,11 +123,7 @@ CREATE TABLE IF NOT EXISTS token_metrics (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
-  UNIQUE(token_issuer, token_name),
-  INDEX idx_metrics_token (token_issuer, token_name),
-  INDEX idx_metrics_volume (total_volume_24h DESC),
-  INDEX idx_metrics_risk (risk_score),
-  INDEX idx_metrics_growth (growth_score)
+  UNIQUE(token_issuer, token_name)
 );
 
 -- Hourly volume aggregation for charts
@@ -164,8 +143,7 @@ CREATE TABLE IF NOT EXISTS volume_hourly (
   high_price DECIMAL(20, 10) DEFAULT 0,
   low_price DECIMAL(20, 10) DEFAULT 0,
   
-  UNIQUE(token_issuer, token_name, hour_timestamp),
-  INDEX idx_volume_hourly_token_time (token_issuer, token_name, hour_timestamp DESC)
+  UNIQUE(token_issuer, token_name, hour_timestamp)
 );
 
 -- Daily volume aggregation
@@ -186,8 +164,7 @@ CREATE TABLE IF NOT EXISTS volume_daily (
   high_price DECIMAL(20, 10) DEFAULT 0,
   low_price DECIMAL(20, 10) DEFAULT 0,
   
-  UNIQUE(token_issuer, token_name, day_date),
-  INDEX idx_volume_daily_token_date (token_issuer, token_name, day_date DESC)
+  UNIQUE(token_issuer, token_name, day_date)
 );
 
 -- ============================================================================
@@ -202,8 +179,7 @@ CREATE TABLE IF NOT EXISTS new_holders_daily (
   date DATE NOT NULL,
   new_holder_count INTEGER NOT NULL DEFAULT 0,
   
-  UNIQUE(token_issuer, token_name, date),
-  INDEX idx_new_holders_token_date (token_issuer, token_name, date DESC)
+  UNIQUE(token_issuer, token_name, date)
 );
 
 -- Tracks returning buyers (holders who buy again after selling)
@@ -214,10 +190,7 @@ CREATE TABLE IF NOT EXISTS returning_buyers (
   token_name VARCHAR(16) NOT NULL,
   last_buy_tick BIGINT NOT NULL,
   last_sell_tick BIGINT NOT NULL,
-  return_count INTEGER DEFAULT 1,
-  
-  INDEX idx_returning_token (token_issuer, token_name),
-  INDEX idx_returning_address (address)
+  return_count INTEGER DEFAULT 1
 );
 
 -- Risk score calculation history
@@ -231,9 +204,7 @@ CREATE TABLE IF NOT EXISTS risk_score_history (
   liquidity_depth_score INTEGER NOT NULL,
   whale_concentration_score INTEGER NOT NULL,
   sell_pressure_score INTEGER NOT NULL,
-  trade_imbalance_score INTEGER NOT NULL,
-  
-  INDEX idx_risk_history_token_time (token_issuer, token_name, timestamp DESC)
+  trade_imbalance_score INTEGER NOT NULL
 );
 
 -- Growth score calculation history
@@ -247,10 +218,48 @@ CREATE TABLE IF NOT EXISTS growth_score_history (
   new_holders_score INTEGER NOT NULL,
   returning_buyers_score INTEGER NOT NULL,
   volume_trend_score INTEGER NOT NULL,
-  activity_streak_score INTEGER NOT NULL,
-  
-  INDEX idx_growth_history_token_time (token_issuer, token_name, timestamp DESC)
+  activity_streak_score INTEGER NOT NULL
 );
+
+-- ============================================================================
+-- INDEXES (PostgreSQL syntax)
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_indexed_ticks_timestamp ON indexed_ticks (timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_trades_tick ON trades (tick);
+CREATE INDEX IF NOT EXISTS idx_trades_token ON trades (token_issuer, token_name);
+CREATE INDEX IF NOT EXISTS idx_trades_trader ON trades (trader);
+CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades (timestamp);
+CREATE INDEX IF NOT EXISTS idx_trades_type ON trades (trade_type);
+CREATE INDEX IF NOT EXISTS idx_trades_composite ON trades (token_issuer, token_name, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_holders_token ON holders (token_issuer, token_name);
+CREATE INDEX IF NOT EXISTS idx_holders_address ON holders (address);
+CREATE INDEX IF NOT EXISTS idx_holders_balance ON holders (balance DESC);
+CREATE INDEX IF NOT EXISTS idx_holders_whale ON holders (is_whale);
+CREATE INDEX IF NOT EXISTS idx_holders_percentage ON holders (percentage DESC);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_token_time ON balance_snapshots (token_issuer, token_name, timestamp);
+CREATE INDEX IF NOT EXISTS idx_snapshots_address ON balance_snapshots (address);
+CREATE INDEX IF NOT EXISTS idx_snapshots_tick ON balance_snapshots (tick);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_token ON token_metrics (token_issuer, token_name);
+CREATE INDEX IF NOT EXISTS idx_metrics_volume ON token_metrics (total_volume_24h DESC);
+CREATE INDEX IF NOT EXISTS idx_metrics_risk ON token_metrics (risk_score);
+CREATE INDEX IF NOT EXISTS idx_metrics_growth ON token_metrics (growth_score);
+
+CREATE INDEX IF NOT EXISTS idx_volume_hourly_token_time ON volume_hourly (token_issuer, token_name, hour_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_volume_daily_token_date ON volume_daily (token_issuer, token_name, day_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_new_holders_token_date ON new_holders_daily (token_issuer, token_name, date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_returning_token ON returning_buyers (token_issuer, token_name);
+CREATE INDEX IF NOT EXISTS idx_returning_address ON returning_buyers (address);
+
+CREATE INDEX IF NOT EXISTS idx_risk_history_token_time ON risk_score_history (token_issuer, token_name, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_growth_history_token_time ON growth_score_history (token_issuer, token_name, timestamp DESC);
 
 -- ============================================================================
 -- FUNCTIONS AND TRIGGERS

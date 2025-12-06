@@ -232,6 +232,10 @@ export class SmartIndexer {
         continue;
       }
 
+      const price = tx.orderDetails?.price ?? 0n;
+      const shares = tx.orderDetails?.shares ?? 0n;
+      const totalValue = tx.orderDetails?.totalValue ?? 0n;
+
       const trade: Trade = {
         txId: tx.txId,
         tick: tick,
@@ -240,10 +244,10 @@ export class SmartIndexer {
         tokenName: tx.asset.name,
         tradeType: tx.operation,
         trader: tx.sourceId,
-        price: tx.orderDetails?.price || BigInt(0),
-        amount: tx.orderDetails?.shares || BigInt(0),
-        totalValue: tx.orderDetails?.totalValue || BigInt(0),
-        pricePerUnit: Number(tx.orderDetails?.price || BigInt(0)),
+        price: price.toString(),
+        amount: shares.toString(),
+        totalValue: totalValue.toString(),
+        pricePerUnit: Number(price),
       };
 
       trades.push(trade);
@@ -259,9 +263,10 @@ export class SmartIndexer {
   private async updateHolderBalances(trades: Trade[]): Promise<void> {
     // Simply insert/update holders - let DB handle aggregation via UPSERT
     for (const trade of trades) {
-      const balanceChange = trade.tradeType === 'BUY' ? trade.amount : -trade.amount;
-      const bought = trade.tradeType === 'BUY' ? trade.amount : BigInt(0);
-      const sold = trade.tradeType === 'SELL' ? trade.amount : BigInt(0);
+      const amount = BigInt(trade.amount);
+      const balanceChange = trade.tradeType === 'BUY' ? amount : -amount;
+      const bought = trade.tradeType === 'BUY' ? amount : 0n;
+      const sold = trade.tradeType === 'SELL' ? amount : 0n;
       const buyCount = trade.tradeType === 'BUY' ? 1 : 0;
       const sellCount = trade.tradeType === 'SELL' ? 1 : 0;
 

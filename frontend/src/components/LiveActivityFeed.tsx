@@ -1,5 +1,6 @@
-import { Activity, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Activity, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
+import { AddressLink } from './AddressLink';
 
 interface Trade {
   id: number | string;
@@ -21,9 +22,9 @@ export function LiveActivityFeed({ trades, tokenName }: LiveActivityFeedProps) {
 
   useEffect(() => {
     // Highlight new trades for 3 seconds
-    const newTradeIds = new Set(trades.slice(0, 3).map(t => t.id));
+    const newTradeIds = new Set(trades.slice(0, 3).map((t) => t.id));
     setHighlightedTrades(newTradeIds);
-    
+
     const timeout = setTimeout(() => {
       setHighlightedTrades(new Set());
     }, 3000);
@@ -55,7 +56,7 @@ export function LiveActivityFeed({ trades, tokenName }: LiveActivityFeedProps) {
         {recentTrades.map((trade) => {
           const isHighlighted = highlightedTrades.has(trade.id);
           const isBuy = trade.tradeType === 'BUY';
-          
+
           return (
             <div
               key={trade.id}
@@ -69,35 +70,34 @@ export function LiveActivityFeed({ trades, tokenName }: LiveActivityFeedProps) {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className={`p-2 rounded-lg ${
-                    isBuy ? 'bg-green-500/20' : 'bg-red-500/20'
-                  }`}>
+                  <div className={`p-2 rounded-lg ${isBuy ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                     {isBuy ? (
                       <ArrowUpRight className="w-4 h-4 text-green-400" />
                     ) : (
                       <ArrowDownRight className="w-4 h-4 text-red-400" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`font-bold text-sm ${
-                        isBuy ? 'text-green-400' : 'text-red-400'
-                      }`}>
+                      <span
+                        className={`font-bold text-sm ${isBuy ? 'text-green-400' : 'text-red-400'}`}
+                      >
                         {trade.tradeType}
                       </span>
-                      <span className="text-white/50 text-xs">•</span>
-                      <span className="text-white/70 text-xs font-mono truncate">
-                        {trade.trader.slice(0, 12)}...
-                      </span>
+                      <span className="text-white/50 text-xs">|</span>
+                      <AddressLink address={trade.trader} truncate={12} className="text-xs" />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span className="text-white/50">
                         Amount: <span className="text-white font-semibold">{trade.amount}</span>
                       </span>
-                      <span className="text-white/50">•</span>
+                      <span className="text-white/50">|</span>
                       <span className="text-white/50">
-                        Price: <span className="text-cyan-400 font-mono">{parseFloat(trade.pricePerUnit).toFixed(4)}</span>
+                        Price:{' '}
+                        <span className="text-cyan-400 font-mono">
+                          {parseFloat(trade.pricePerUnit).toFixed(4)}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -113,9 +113,11 @@ export function LiveActivityFeed({ trades, tokenName }: LiveActivityFeedProps) {
 
               {isHighlighted && (
                 <div className="absolute inset-0 rounded-xl pointer-events-none">
-                  <div className={`absolute inset-0 rounded-xl animate-ping ${
-                    isBuy ? 'bg-green-500/30' : 'bg-red-500/30'
-                  }`} />
+                  <div
+                    className={`absolute inset-0 rounded-xl animate-ping ${
+                      isBuy ? 'bg-green-500/30' : 'bg-red-500/30'
+                    }`}
+                  />
                 </div>
               )}
             </div>
