@@ -1,0 +1,51 @@
+{
+  "name": "qubic-token-analyzer",
+  "version": "1.0.0",
+  "description": "Advanced on-chain analytics tool for Qubic ecosystem - Track trades, holders, liquidity, and token metrics",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "indexer": "ts-node src/indexer/main.ts",
+    "api": "ts-node src/api/main.ts",
+    "migrate": "ts-node src/database/migrations/run.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "qubic",
+    "blockchain",
+    "analytics",
+    "dex",
+    "token-tracker"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "ws": "^8.14.2",
+    "axios": "^1.6.2",
+    "zod": "^3.22.4",
+    "date-fns": "^3.0.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/pg": "^8.10.9",
+    "@types/ws": "^8.5.10",
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11"
+  }
+}
