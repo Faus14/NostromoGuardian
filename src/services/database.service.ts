@@ -189,15 +189,14 @@ export class DatabaseService {
         buy_count, sell_count, is_whale
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       ON CONFLICT (address, token_issuer, token_name) DO UPDATE SET
-        balance = $4,
+        balance = holders.balance + $4,
         percentage = $5,
         last_activity_tick = $7,
-        total_bought = $8,
-        total_sold = $9,
-        buy_count = $10,
-        sell_count = $11,
-        is_whale = $12,
-        updated_at = CURRENT_TIMESTAMP`,
+        total_bought = holders.total_bought + $8,
+        total_sold = holders.total_sold + $9,
+        buy_count = holders.buy_count + $10,
+        sell_count = holders.sell_count + $11,
+        is_whale = $12`,
       [
         holder.address,
         holder.tokenIssuer,

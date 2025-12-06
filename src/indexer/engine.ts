@@ -88,21 +88,25 @@ export class IndexerEngine {
     this.currentTick = tickInfo.tick;
 
     // Calculate how many ticks behind we are
-    const ticksToProcess = Math.min(
-      this.currentTick - this.lastProcessedTick,
-      config.indexer.batchSize
-    );
+    const ticksBehind = this.currentTick - this.lastProcessedTick;
+    const ticksToProcess = Math.min(ticksBehind, config.indexer.batchSize);
 
     if (ticksToProcess <= 0) {
-      console.log(`[Indexer] Up to date at tick ${this.currentTick}`);
+      // Up to date, just show progress periodically
+      if (this.lastProcessedTick % 100 === 0) {
+        console.log(`[Indexer] 🔄 Synced at tick ${this.currentTick} (checking for new ticks...)`);
+      }
       return;
     }
 
-    console.log(
-      `[Indexer] Processing ${ticksToProcess} ticks (${this.lastProcessedTick + 1} to ${
-        this.lastProcessedTick + ticksToProcess
-      })`
-    );
+    // Show batch info only if processing significant amount
+    if (ticksToProcess > 5) {
+      console.log(
+        `[Indexer] 📦 Batch: ${ticksToProcess} ticks (${this.lastProcessedTick + 1} → ${
+          this.lastProcessedTick + ticksToProcess
+        }) | Behind: ${ticksBehind}`
+      );
+    }
 
     // Process each tick in the batch
     for (let i = 1; i <= ticksToProcess; i++) {
@@ -142,8 +146,7 @@ export class IndexerEngine {
   private async indexTick(tick: number): Promise<void> {
     // Check if already processed
     if (await this.db.isTickProcessed(tick)) {
-      console.log(`[Indexer] Tick ${tick} already processed, skipping`);
-      return;
+      return; // Skip silently
     }
 
     try {
@@ -151,18 +154,26 @@ export class IndexerEngine {
       const transactions = await this.rpc.getTransactionsByTick(tick);
       
       if (transactions.length === 0) {
-        // Mark as processed even if no transactions
+        // Mark as processed even if no transactions (skip silently)
         await this.db.markTickAsProcessed(tick, new Date(), 0, 0);
         return;
       }
 
-      console.log(`[Indexer] Tick ${tick}: ${transactions.length} transactions`);
-
       // Filter and decode QX transactions
       const qxTransactions = this.filterQXTransactions(transactions);
-      console.log(`[Indexer] Tick ${tick}: ${qxTransactions.length} QX transactions`);
+      
+      if (qxTransactions.length === 0) {
+        // Skip ticks without QX activity if configured
+        if (config.indexer.skipEmptyTicks) {
+          await this.db.markTickAsProcessed(tick, new Date(), transactions.length, 0);
+          return; // Skip silently
+        }
+      }
 
+      // Only log when we find QX transactions
       if (qxTransactions.length > 0) {
+        console.log(`[Indexer] 🎯 Tick ${tick}: ${qxTransactions.length} QX transactions found!`);
+        
         // Convert to Trade records
         const trades = this.convertToTrades(qxTransactions, tick);
         
@@ -172,7 +183,7 @@ export class IndexerEngine {
         // Update holder balances
         await this.updateHolderBalances(trades);
         
-        console.log(`[Indexer] Tick ${tick}: Stored ${trades.length} trades`);
+        console.log(`[Indexer] ✅ Tick ${tick}: Stored ${trades.length} trades`);
       }
 
       // Mark tick as processed
@@ -185,9 +196,8 @@ export class IndexerEngine {
     } catch (error: any) {
       // Handle 404 errors (tick doesn't exist yet or no data)
       if (error.response?.status === 404 || error.message?.includes('404')) {
-        console.log(`[Indexer] Tick ${tick}: No data available (404), marking as skipped`);
         await this.db.markTickAsProcessed(tick, new Date(), 0, 0);
-        return;
+        return; // Skip silently
       }
       throw error;
     }

@@ -121,21 +121,34 @@ npm run dev
 
 Abre tu navegador en `http://localhost:5173`.
 
-### 6️⃣ **Arrancar el Indexer (para tener datos reales)**
+### 6️⃣ **Arrancar el Smart Indexer (RECOMENDADO) 🚀**
+
+El **Smart Indexer** es la versión optimizada que:
+- ⚡ Salta ticks vacíos automáticamente
+- 🎯 Solo indexa ticks con transacciones QX
+- 🔄 Corre en loop infinito (se actualiza solo)
+- 📊 Muestra estadísticas cada 100 ticks
 
 En otra terminal:
 
 ```bash
+npm run smart-index
+```
+
+**¡Se actualiza solo!** Déjalo corriendo y se sincronizará automáticamente. Verás logs como:
+```
+[SmartIndexer] 🎯 Tick 38850105: 3 QX transactions
+[SmartIndexer] ✅ Tick 38850105: Stored 3 trades
+[SmartIndexer] 📊 STATS
+  Current Tick: 38850200 | Last Processed: 38850195
+  Ticks Scanned: 500 (15.2/s)
+  Ticks with QX: 23 (4.6% hit rate)
+  Trades Found: 47
+```
+
+**Alternativa (indexer clásico):**
+```bash
 npm run indexer
-```
-
-**Déjalo correr por al menos 5-10 minutos** para que indexe suficientes ticks con transacciones QX.
-
-Verás logs como:
-```
-[Indexer] Processing 10 ticks (38850100 to 38850110)
-[Indexer] Found 3 QX transactions in tick 38850105
-[Database] Saved trade: BUY QX by CFBM...
 ```
 
 ## 🎯 Cómo usar
@@ -170,9 +183,9 @@ Si el indexer ha corrido suficiente, verás:
 ### ¿Por qué todo muestra 0?
 
 Porque el **indexer no ha corrido** o corrió muy poco. La BD está vacía. Necesitas:
-1. Arrancar el indexer: `npm run indexer`
-2. Dejarlo correr por 5-10 minutos
-3. Refrescar el frontend
+1. Arrancar el smart indexer: `npm run smart-index`
+2. Dejarlo correr en background (se actualiza solo)
+3. Refrescar el frontend después de unos minutos
 
 ### ¿Cómo verifico que el indexer está funcionando?
 
@@ -193,10 +206,15 @@ docker exec qubic-db psql -U qubic -d qubic_analytics -c "SELECT * FROM trades O
 
 ### ¿Cuánto tarda en tener datos?
 
-- El indexer procesa ~10-20 ticks por segundo
-- Muchos ticks no tienen transacciones QX
-- Para ver datos útiles necesita ~500-1000 ticks con transacciones QX
-- **Estimado: 5-10 minutos**
+Con el **Smart Indexer**:
+- Escanea ~15-50 ticks por segundo (salta vacíos)
+- Solo procesa ticks con transacciones QX (~5% hit rate)
+- Verás primeros trades en **1-3 minutos**
+- Para analytics completos: **5-10 minutos**
+
+### ¿Qué pasa si apago el indexer?
+
+Nada malo. Cuando lo vuelvas a arrancar, **continúa desde donde quedó**. La BD guarda el progreso automáticamente.
 
 ### ¿Cómo detengo todo?
 
@@ -253,7 +271,8 @@ prueba/
 ```bash
 # Backend
 npm run api         # Arrancar API server
-npm run indexer     # Arrancar indexer
+npm run smart-index # 🚀 Arrancar Smart Indexer (RECOMENDADO)
+npm run indexer     # Arrancar indexer clásico
 npm run build       # Compilar TypeScript
 
 # Frontend

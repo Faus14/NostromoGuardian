@@ -35,10 +35,13 @@ export class QubicRPCService {
       },
     });
 
-    // Add request/response interceptors for logging
+    // Add request/response interceptors with retry logic
     this.client.interceptors.request.use(
       (config) => {
-        console.log(`[RPC Request] ${config.method?.toUpperCase()} ${config.url}`);
+        // Silent logging for production
+        if (process.env.DEBUG === 'true') {
+          console.log(`[RPC Request] ${config.method?.toUpperCase()} ${config.url}`);
+        }
         return config;
       },
       (error) => {
@@ -49,14 +52,56 @@ export class QubicRPCService {
 
     this.client.interceptors.response.use(
       (response) => {
-        console.log(`[RPC Response] ${response.config.url} - Status: ${response.status}`);
+        if (process.env.DEBUG === 'true') {
+          console.log(`[RPC Response] ${response.config.url} - Status: ${response.status}`);
+        }
         return response;
       },
-      (error) => {
-        console.error('[RPC Response Error]', error.message);
+      async (error) => {
+        const config = error.config;
+        
+        // Handle rate limiting (429)
+        if (error.response?.status === 429) {
+          const retryCount = config.__retryCount || 0;
+          const maxRetries = 5;
+          
+          if (retryCount < maxRetries) {
+            config.__retryCount = retryCount + 1;
+            
+            // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+            const delayMs = Math.pow(2, retryCount) * 1000;
+            console.log(`[RPC] Rate limited (429). Retry ${retryCount + 1}/${maxRetries} after ${delayMs}ms`);
+            
+            await this.sleep(delayMs);
+            return this.client.request(config);
+          }
+        }
+        
+        // Handle temporary network errors
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+          const retryCount = config.__retryCount || 0;
+          const maxRetries = 3;
+          
+          if (retryCount < maxRetries) {
+            config.__retryCount = retryCount + 1;
+            const delayMs = 2000 * (retryCount + 1);
+            
+            console.log(`[RPC] Network error. Retry ${retryCount + 1}/${maxRetries} after ${delayMs}ms`);
+            await this.sleep(delayMs);
+            return this.client.request(config);
+          }
+        }
+        
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

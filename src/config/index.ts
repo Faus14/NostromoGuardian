@@ -29,6 +29,8 @@ export const config = {
     batchSize: parseInt(process.env.INDEXER_BATCH_SIZE || '100'),
     pollIntervalMs: parseInt(process.env.INDEXER_POLL_INTERVAL_MS || '5000'),
     maxRetries: parseInt(process.env.INDEXER_MAX_RETRIES || '3'),
+    skipEmptyTicks: process.env.INDEXER_SKIP_EMPTY_TICKS === 'true',
+    fastForward: process.env.INDEXER_FAST_FORWARD === 'true',
   },
   
   api: {
