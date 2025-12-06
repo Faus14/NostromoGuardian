@@ -426,7 +426,22 @@ app.get('/api/v1/addresses/:address/holdings', async (req: Request, res: Respons
 
     // Query all tokens where this address has balance > 0
     const result = await db.query(
-      `SELECT * FROM holders WHERE address = $1 AND balance > 0 ORDER BY balance DESC`,
+      `SELECT 
+        token_issuer,
+        token_name,
+        address,
+        balance::text as balance,
+        percentage,
+        buy_count,
+        sell_count,
+        total_bought::text as total_bought,
+        total_sold::text as total_sold,
+        first_seen_tick,
+        last_activity_tick,
+        is_whale
+      FROM holders 
+      WHERE address = $1 AND balance > 0 
+      ORDER BY balance DESC`,
       [address]
     );
 

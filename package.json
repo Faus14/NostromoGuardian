@@ -13,6 +13,7 @@
     "aggressive-seed": "ts-node src/indexer/aggressive-main.ts",
     "intelligent-seed": "ts-node src/indexer/intelligent-main.ts",
     "query-seed": "ts-node src/indexer/query-api-main.ts",
+    "calculate-holders": "ts-node src/indexer/calculate-holders.ts",
     "api": "ts-node src/api/main.ts",
     "migrate": "ts-node src/database/migrations/run.ts",
     "test": "jest",

@@ -384,9 +384,9 @@ export class DatabaseService {
       tokenName: row.token_name,
       tradeType: row.trade_type,
       trader: row.trader,
-      price: BigInt(row.price),
-      amount: BigInt(row.amount),
-      totalValue: BigInt(row.total_value),
+      price: row.price.toString(),
+      amount: row.amount.toString(),
+      totalValue: row.total_value.toString(),
       pricePerUnit: row.price_per_unit,
     };
   }

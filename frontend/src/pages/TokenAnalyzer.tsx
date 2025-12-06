@@ -32,14 +32,17 @@ export default function TokenAnalyzer() {
     e.preventDefault();
     if (!selectedToken) return;
 
-    // Extract issuer and name from selected token
-    const token = tokenList.find(t => `${t.name}-${t.issuer}` === selectedToken);
-    if (!token) return;
+    // Parse token from serialized format: "issuer|||name"
+    const [issuer, name] = selectedToken.split('|||');
+    if (!issuer || !name) {
+      setError('Invalid token selection. Please refresh and try again.');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getTokenAnalytics(token.issuer, token.name);
+      const data = await api.getTokenAnalytics(issuer, name);
       setAnalytics(data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch analytics';
@@ -86,7 +89,10 @@ export default function TokenAnalyzer() {
           >
             <option value="">Choose a token...</option>
             {Array.isArray(tokenList) && tokenList.map((token) => (
-              <option key={`${token.name}-${token.issuer}`} value={`${token.name}-${token.issuer}`}>
+              <option 
+                key={`${token.issuer}-${token.name}`} 
+                value={`${token.issuer}|||${token.name}`}
+              >
                 {token.name} ({token.tradeCount} trades)
               </option>
             ))}
@@ -242,8 +248,8 @@ export default function TokenAnalyzer() {
                           {trade.tradeType}
                         </span>
                       </td>
-                      <td className="py-2 text-gray-300">{trade.trader.slice(0, 12)}...</td>
-                      <td className="py-2 text-white">{(parseInt(trade.amount) / 1e9).toFixed(2)}</td>
+                      <td className="py-2 text-gray-300">{trade.trader.slice(0, 16)}...</td>
+                      <td className="py-2 text-white">{(BigInt(trade.amount) / BigInt(1e9)).toString()} tokens</td>
                       <td className="py-2 text-white">{parseFloat(trade.pricePerUnit).toFixed(6)}</td>
                       <td className="py-2 text-gray-400">{trade.tick.toLocaleString()}</td>
                     </tr>
@@ -272,8 +278,8 @@ export default function TokenAnalyzer() {
                     <tr key={holder.address} className="border-b border-gray-700">
                       <td className="py-2 text-white font-semibold">#{idx + 1}</td>
                       <td className="py-2 text-gray-300">{holder.address.slice(0, 16)}...</td>
-                      <td className="py-2 text-white">{(parseInt(holder.balance) / 1e9).toFixed(2)}</td>
-                      <td className="py-2 text-qubic-primary">{holder.percentage.toFixed(2)}%</td>
+                      <td className="py-2 text-white">{(BigInt(holder.balance) / BigInt(1e9)).toString()} tokens</td>
+                      <td className="py-2 text-qubic-primary">{Number(holder.percentage).toFixed(2)}%</td>
                       <td className="py-2">
                         {holder.isWhale && <span className="px-2 py-1 bg-purple-500/20 text-purple-500 rounded text-xs font-semibold">WHALE</span>}
                       </td>

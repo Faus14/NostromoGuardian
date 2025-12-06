@@ -91,9 +91,9 @@ export interface Trade {
   tokenName: string;
   tradeType: 'BUY' | 'SELL';
   trader: string;
-  price: bigint;
-  amount: bigint;
-  totalValue: bigint;
+  price: string;
+  amount: string;
+  totalValue: string;
   pricePerUnit: number;
 }
 
