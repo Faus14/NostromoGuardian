@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api, type TokenListItem } from '../services/api';
 import type { TokenAnalytics } from '../services/api';
-import { Search, TrendingUp, TrendingDown, Users, Activity, Shield, Zap } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Users, Activity, Shield, Zap, BarChart3 } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
 import { Pie, Line, Bar } from 'react-chartjs-2';
+import { MetricCard } from '../components/MetricCard';
+import { RiskAlerts } from '../components/RiskAlerts';
+import { MarketSentiment } from '../components/MarketSentiment';
+import { LiveActivityFeed } from '../components/LiveActivityFeed';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title);
 
@@ -146,6 +150,9 @@ export default function TokenAnalyzer() {
             </h3>
           </div>
 
+          {/* Risk Alerts - NEW KILLER FEATURE */}
+          <RiskAlerts analytics={analytics} />
+
           {/* Scores */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ScoreCard
@@ -164,15 +171,52 @@ export default function TokenAnalyzer() {
             />
           </div>
 
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetricCard title="Total Holders" value={analytics.metrics.holders.total.toString()} icon={<Users />} />
-            <MetricCard title="Whales" value={analytics.metrics.holders.whales.toString()} icon={<TrendingUp />} />
-            <MetricCard title="24h Trades" value={analytics.metrics.activity.totalTrades.toString()} icon={<Activity />} />
+          {/* Key Metrics - Professional Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard 
+              title="Total Holders" 
+              value={analytics.metrics.holders.total.toString()} 
+              icon={Users}
+              color="cyan"
+              tooltip="Total number of unique addresses holding this token"
+              subtitle={`Top 10 hold ${analytics.metrics.holders.top10Percentage.toFixed(1)}%`}
+            />
+            <MetricCard 
+              title="Whales Detected" 
+              value={analytics.metrics.holders.whales.toString()} 
+              icon={TrendingUp}
+              color="violet"
+              tooltip="Addresses holding >5% of total supply"
+              subtitle={analytics.metrics.holders.whales > 0 ? "High concentration" : "Well distributed"}
+            />
+            <MetricCard 
+              title="24h Trades" 
+              value={analytics.metrics.activity.totalTrades.toString()} 
+              icon={Activity}
+              color="green"
+              tooltip="Total trades in the last 24 hours"
+              subtitle={`${analytics.metrics.activity.buyCount} buys / ${analytics.metrics.activity.sellCount} sells`}
+            />
             <MetricCard
               title="Volume 24h"
               value={`${(parseInt(analytics.metrics.volume.last24h) / 1e9).toFixed(2)} QU`}
-              icon={<TrendingUp />}
+              icon={BarChart3}
+              color="yellow"
+              tooltip="Trading volume in the last 24 hours"
+              change={`7d: ${(parseInt(analytics.metrics.volume.last7d) / 1e9).toFixed(2)} QU`}
+            />
+          </div>
+
+          {/* Market Sentiment & Live Activity - NEW KILLER FEATURES */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MarketSentiment 
+              buyCount={analytics.metrics.activity.buyCount}
+              sellCount={analytics.metrics.activity.sellCount}
+              volume24h={analytics.metrics.volume.last24h}
+            />
+            <LiveActivityFeed 
+              trades={analytics.recentTrades}
+              tokenName={analytics.token.name}
             />
           </div>
 
@@ -222,36 +266,41 @@ export default function TokenAnalyzer() {
             </div>
           </div>
 
-          {/* Recent Trades */}
-          <div className="bg-qubic-gray rounded-lg p-6 border border-gray-700">
-            <h4 className="text-lg font-semibold text-white mb-4">Recent Trades</h4>
+          {/* Recent Trades - Enhanced Table */}
+          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xl font-bold text-white">Recent Trades</h4>
+              <span className="text-sm text-white/50">Last {analytics.recentTrades.length} transactions</span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-600">
-                    <th className="pb-2">Type</th>
-                    <th className="pb-2">Trader</th>
-                    <th className="pb-2">Amount</th>
-                    <th className="pb-2">Price</th>
-                    <th className="pb-2">Tick</th>
+                  <tr className="text-left text-white/50 text-xs uppercase tracking-wider border-b border-white/10">
+                    <th className="pb-3 font-semibold">Type</th>
+                    <th className="pb-3 font-semibold">Trader</th>
+                    <th className="pb-3 font-semibold">Amount</th>
+                    <th className="pb-3 font-semibold">Price</th>
+                    <th className="pb-3 font-semibold">Tick</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/5">
                   {analytics.recentTrades.slice(0, 10).map((trade) => (
-                    <tr key={trade.id} className="border-b border-gray-700">
-                      <td className="py-2">
+                    <tr key={trade.id} className="hover:bg-white/5 transition-colors">
+                      <td className="py-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            trade.tradeType === 'BUY' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
+                            trade.tradeType === 'BUY' 
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
                           }`}
                         >
                           {trade.tradeType}
                         </span>
                       </td>
-                      <td className="py-2 text-gray-300">{trade.trader.slice(0, 16)}...</td>
-                      <td className="py-2 text-white">{(BigInt(trade.amount) / BigInt(1e9)).toString()} tokens</td>
-                      <td className="py-2 text-white">{parseFloat(trade.pricePerUnit).toFixed(6)}</td>
-                      <td className="py-2 text-gray-400">{trade.tick.toLocaleString()}</td>
+                      <td className="py-3 text-white/70 font-mono text-sm">{trade.trader.slice(0, 16)}...</td>
+                      <td className="py-3 text-white font-semibold">{trade.amount} tokens</td>
+                      <td className="py-3 text-cyan-400 font-mono">{parseFloat(trade.pricePerUnit).toFixed(6)}</td>
+                      <td className="py-3 text-white/40 text-sm">{trade.tick.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -259,29 +308,52 @@ export default function TokenAnalyzer() {
             </div>
           </div>
 
-          {/* Top Holders */}
-          <div className="bg-qubic-gray rounded-lg p-6 border border-gray-700">
-            <h4 className="text-lg font-semibold text-white mb-4">Top Holders</h4>
+          {/* Top Holders - Enhanced Table */}
+          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xl font-bold text-white">Top Holders</h4>
+              <span className="text-sm text-white/50">{analytics.metrics.holders.whales} whales detected</span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-600">
-                    <th className="pb-2">Rank</th>
-                    <th className="pb-2">Address</th>
-                    <th className="pb-2">Balance</th>
-                    <th className="pb-2">%</th>
-                    <th className="pb-2">Status</th>
+                  <tr className="text-left text-white/50 text-xs uppercase tracking-wider border-b border-white/10">
+                    <th className="pb-3 font-semibold">Rank</th>
+                    <th className="pb-3 font-semibold">Address</th>
+                    <th className="pb-3 font-semibold">Balance</th>
+                    <th className="pb-3 font-semibold">Share</th>
+                    <th className="pb-3 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/5">
                   {analytics.topHolders.slice(0, 10).map((holder, idx) => (
-                    <tr key={holder.address} className="border-b border-gray-700">
-                      <td className="py-2 text-white font-semibold">#{idx + 1}</td>
-                      <td className="py-2 text-gray-300">{holder.address.slice(0, 16)}...</td>
-                      <td className="py-2 text-white">{(BigInt(holder.balance) / BigInt(1e9)).toString()} tokens</td>
-                      <td className="py-2 text-qubic-primary">{Number(holder.percentage).toFixed(2)}%</td>
-                      <td className="py-2">
-                        {holder.isWhale && <span className="px-2 py-1 bg-purple-500/20 text-purple-500 rounded text-xs font-semibold">WHALE</span>}
+                    <tr key={holder.address} className="hover:bg-white/5 transition-colors">
+                      <td className="py-3">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 text-white font-bold text-sm">
+                          {idx + 1}
+                        </span>
+                      </td>
+                      <td className="py-3 text-white/70 font-mono text-sm">{holder.address.slice(0, 20)}...</td>
+                      <td className="py-3 text-white font-semibold">{holder.balance} tokens</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden max-w-[100px]">
+                            <div 
+                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                              style={{ width: `${Math.min(Number(holder.percentage), 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-purple-400 font-bold text-sm min-w-[3.5rem]">
+                            {Number(holder.percentage).toFixed(2)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        {holder.isWhale && (
+                          <span className="inline-flex items-center px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-full text-xs font-bold">
+                            🐋 WHALE
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -317,40 +389,48 @@ function ScoreCard({ title, score, icon, factors, type }: ScoreCardProps) {
   };
 
   return (
-    <div className="bg-qubic-gray rounded-lg p-6 border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-semibold text-white">{title}</h4>
-        {icon}
-      </div>
-      <div className={`text-5xl font-bold ${getColor()} mb-4`}>{score.toFixed(1)}</div>
-      <div className="space-y-2">
-        {Object.entries(factors)
-          .filter(([key]) => key !== 'total')
-          .map(([key, value]) => (
-            <div key={key} className="flex justify-between text-sm">
-              <span className="text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-              <span className="text-white font-semibold">{(value as number).toFixed(1)}</span>
-            </div>
-          ))}
+    <div className="relative bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300 group overflow-hidden">
+      {/* Animated background glow */}
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${type === 'risk' ? 'bg-gradient-to-br from-red-500 to-yellow-500' : 'bg-gradient-to-br from-green-500 to-blue-500'}`} />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-6">
+          <h4 className="text-xl font-bold text-white tracking-tight">{title}</h4>
+          <div className={`p-3 rounded-xl ${type === 'risk' ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+            {icon}
+          </div>
+        </div>
+        
+        <div className={`text-6xl font-black ${getColor()} mb-6 tracking-tighter`}>
+          {score.toFixed(1)}
+          <span className="text-2xl text-white/40 ml-2">/100</span>
+        </div>
+        
+        <div className="space-y-3 pt-4 border-t border-white/10">
+          {Object.entries(factors)
+            .filter(([key]) => key !== 'total')
+            .map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between group/item">
+                <span className="text-white/60 text-sm capitalize group-hover/item:text-white/80 transition-colors">
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${type === 'risk' ? 'bg-gradient-to-r from-red-500 to-yellow-500' : 'bg-gradient-to-r from-green-500 to-blue-500'} rounded-full transition-all`}
+                      style={{ width: `${(value as number)}%` }}
+                    />
+                  </div>
+                  <span className="text-white font-bold text-sm min-w-[3rem] text-right">
+                    {(value as number).toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   );
 }
 
-interface MetricCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-}
 
-function MetricCard({ title, value, icon }: MetricCardProps) {
-  return (
-    <div className="bg-qubic-gray rounded-lg p-4 border border-gray-700">
-      <div className="flex items-center gap-2 text-gray-400 mb-2">
-        {icon}
-        <span className="text-sm">{title}</span>
-      </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-    </div>
-  );
-}
