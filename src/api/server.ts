@@ -65,6 +65,39 @@ app.get('/api/v1/status', async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
+ * GET /api/v1/tokens/list
+ * Get list of all tokens with trade counts for dropdown
+ */
+app.get('/api/v1/tokens/list', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        token_name,
+        token_issuer,
+        COUNT(*) as trade_count
+      FROM trades
+      GROUP BY token_name, token_issuer
+      ORDER BY trade_count DESC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        name: row.token_name,
+        issuer: row.token_issuer,
+        tradeCount: parseInt(row.trade_count)
+      }))
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching token list:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/v1/tokens/example
  * Get example token data - Use this to test with real issuer/name
  * Example: CFBMEMZOIDEXDYPVMHGCBQDTTMPRJHOXMZRFVWXYZJWYQVNLODVFAAFV / QX

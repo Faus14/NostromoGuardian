@@ -53,7 +53,15 @@ export class SmartIndexer {
     if (startFromTick) {
       this.lastProcessedTick = startFromTick;
     } else {
-      this.lastProcessedTick = await this.db.getLastProcessedTick();
+      const lastProcessed = await this.db.getLastProcessedTick();
+      if (lastProcessed === 0) {
+        // No previous progress - start from current tick minus 1000 (last ~15 minutes)
+        const currentTick = await this.rpc.getCurrentTick();
+        this.lastProcessedTick = Math.max(0, currentTick.tick - 1000);
+        console.log(`[SmartIndexer] 📍 No previous progress found, starting from recent tick`);
+      } else {
+        this.lastProcessedTick = lastProcessed;
+      }
     }
 
     console.log(`[SmartIndexer] 📍 Starting from tick ${this.lastProcessedTick}`);
@@ -106,8 +114,8 @@ export class SmartIndexer {
       return;
     }
 
-    // Process batch
-    const batchSize = Math.min(config.indexer.batchSize, ticksBehind);
+    // Process batch (limit to avoid memory issues)
+    const batchSize = Math.min(config.indexer.batchSize, ticksBehind, 50);
     const startTick = this.lastProcessedTick + 1;
     const endTick = this.lastProcessedTick + batchSize;
 

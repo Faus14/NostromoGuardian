@@ -120,6 +120,12 @@ export interface TokenAnalytics {
   topHolders: Holder[];
 }
 
+export interface TokenListItem {
+  name: string;
+  issuer: string;
+  tradeCount: number;
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -129,6 +135,11 @@ class ApiClient {
 
   async getStatus(): Promise<StatusResponse> {
     const { data } = await axios.get(`${this.baseURL}/api/v1/status`);
+    return data.data;
+  }
+
+  async getTokenList(): Promise<TokenListItem[]> {
+    const { data } = await axios.get(`${this.baseURL}/api/v1/tokens/list`);
     return data.data;
   }
 

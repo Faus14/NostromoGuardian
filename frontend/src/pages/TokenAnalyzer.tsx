@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { api } from '../services/api';
+import { useState, useEffect } from 'react';
+import { api, type TokenListItem } from '../services/api';
 import type { TokenAnalytics } from '../services/api';
 import { Search, TrendingUp, TrendingDown, Users, Activity, Shield, Zap } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
@@ -8,20 +8,38 @@ import { Pie, Line, Bar } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title);
 
 export default function TokenAnalyzer() {
-  const [issuer, setIssuer] = useState('');
-  const [tokenName, setTokenName] = useState('');
+  const [selectedToken, setSelectedToken] = useState('');
+  const [tokenList, setTokenList] = useState<TokenListItem[]>([]);
   const [analytics, setAnalytics] = useState<TokenAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load token list on mount
+  useEffect(() => {
+    const loadTokens = async () => {
+      try {
+        const tokens = await api.getTokenList();
+        setTokenList(Array.isArray(tokens) ? tokens : []);
+      } catch (err) {
+        console.error('Failed to load tokens:', err);
+        setTokenList([]);
+      }
+    };
+    loadTokens();
+  }, []);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!issuer || !tokenName) return;
+    if (!selectedToken) return;
+
+    // Extract issuer and name from selected token
+    const token = tokenList.find(t => `${t.name}-${t.issuer}` === selectedToken);
+    if (!token) return;
 
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getTokenAnalytics(issuer, tokenName);
+      const data = await api.getTokenAnalytics(token.issuer, token.name);
       setAnalytics(data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch analytics';
@@ -56,37 +74,27 @@ export default function TokenAnalyzer() {
 
       {/* Search Form */}
       <form onSubmit={handleSearch} className="bg-gradient-to-br from-qubic-gray to-gray-900 rounded-xl p-8 border border-gray-700 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-bold text-gray-300 mb-3 flex items-center gap-2">
-              <Users className="w-4 h-4 text-qubic-primary" />
-              Token Issuer
-            </label>
-            <input
-              type="text"
-              value={issuer}
-              onChange={(e) => setIssuer(e.target.value)}
-              placeholder="AAAAAAAAAA..."
-              className="w-full px-4 py-3 bg-qubic-dark/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-qubic-primary focus:border-transparent transition"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-300 mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-qubic-primary" />
-              Token Name
-            </label>
-            <input
-              type="text"
-              value={tokenName}
-              onChange={(e) => setTokenName(e.target.value)}
-              placeholder="TOKEN"
-              className="w-full px-4 py-3 bg-qubic-dark/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-qubic-primary focus:border-transparent transition"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-300 mb-3 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-qubic-primary" />
+            Select Token
+          </label>
+          <select
+            value={selectedToken}
+            onChange={(e) => setSelectedToken(e.target.value)}
+            className="w-full px-4 py-3 bg-qubic-dark/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-qubic-primary focus:border-transparent transition"
+          >
+            <option value="">Choose a token...</option>
+            {Array.isArray(tokenList) && tokenList.map((token) => (
+              <option key={`${token.name}-${token.issuer}`} value={`${token.name}-${token.issuer}`}>
+                {token.name} ({token.tradeCount} trades)
+              </option>
+            ))}
+          </select>
         </div>
         <button
           type="submit"
-          disabled={loading || !issuer || !tokenName}
+          disabled={loading || !selectedToken}
           className="mt-6 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-qubic-primary to-blue-500 text-white px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-qubic-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg"
         >
           <Search className="w-5 h-5" />

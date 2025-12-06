@@ -27,8 +27,8 @@ async function main() {
   });
 
   try {
-    // Fetch 200 trades for a good demo dataset
-    await seeder.seed(200);
+    // Fetch 1000 trades for a comprehensive demo dataset
+    await seeder.seed(1000);
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Seeder failed:', error);
