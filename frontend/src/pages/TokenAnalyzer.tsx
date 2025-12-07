@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api, type TokenListItem } from '../services/api';
 import type { TokenAnalytics } from '../services/api';
-import { Search, TrendingUp, TrendingDown, Users, Activity, Shield, Zap, BarChart3 } from 'lucide-react';
+import { Search, TrendingUp, Users, Activity, Shield, Zap, BarChart3 } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
-import { Pie, Line, Bar } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import { MetricCard } from '../components/MetricCard';
 import { RiskAlerts } from '../components/RiskAlerts';
 import { MarketSentiment } from '../components/MarketSentiment';

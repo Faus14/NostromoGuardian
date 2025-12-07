@@ -153,7 +153,7 @@ export default function AddressLookup() {
                       <tr key={`${holding.tokenIssuer}-${holding.tokenName}`} className="border-b border-gray-700">
                         <td className="py-2 text-white font-semibold">{holding.tokenName}</td>
                         <td className="py-2 text-white">{(parseInt(holding.balance) / 1e9).toFixed(2)}</td>
-                        <td className="py-2 text-qubic-primary">{parseFloat(holding.percentage).toFixed(2)}%</td>
+                        <td className="py-2 text-qubic-primary">{Number(holding.percentage).toFixed(2)}%</td>
                         <td className="py-2 text-green-500">{holding.buyCount}</td>
                         <td className="py-2 text-red-500">{holding.sellCount}</td>
                       </tr>
