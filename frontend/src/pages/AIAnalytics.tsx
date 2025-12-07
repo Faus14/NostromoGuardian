@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle, XCircle, Send, Loader } from 'lucide-react';
+import { api } from '../services/api';
 
 interface AIInsights {
   sentiment: 'bullish' | 'bearish' | 'neutral';
@@ -12,7 +13,7 @@ interface AIInsights {
 interface AIAnnouncement {
   discord_message: string;
   telegram_message: string;
-  twitter_post: string;
+  twitter_post?: string;
 }
 
 export default function AIAnalytics() {
@@ -32,32 +33,21 @@ export default function AIAnalytics() {
     setTradeInsights(null);
 
     try {
-      const response = await fetch('/api/v1/ai/analyze-trade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trade: {
-            amount: parseInt(amount),
-            token_name: tokenName,
-            source_address: 'QUBIC_SOURCE',
-            dest_address: 'QUBIC_DEST',
-          },
-          context: {
-            token_volume_24h: 500000000,
-            token_holders: 266,
-          },
-        }),
+      const data = await api.analyzeTradeWithAI({
+        trade: {
+          amount: parseInt(amount, 10),
+          token_name: tokenName,
+          source_address: 'QUBIC_SOURCE',
+          dest_address: 'QUBIC_DEST',
+        },
+        context: {
+          token_volume_24h: 500000000,
+          token_holders: 266,
+        },
       });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setTradeInsights(data.data);
-      } else {
-        setError('AI analysis failed');
-      }
-    } catch (err) {
-      setError('AI service unavailable. Check if OPENAI_API_KEY is set.');
+      setTradeInsights(data);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'AI service unavailable. Check if OPENAI_API_KEY is set.');
     } finally {
       setLoading(false);
     }
@@ -69,30 +59,24 @@ export default function AIAnalytics() {
     setAnnouncement(null);
 
     try {
-      const response = await fetch('/api/v1/ai/generate-announcement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: eventType,
-          data: {
-            amount: parseInt(amount),
-            token_name: tokenName,
-            source_address: 'QUBICABC123',
-            tick: 15234567,
-            usd_value_estimate: 22500,
-          },
-        }),
+      const data = await api.generateAnnouncement({
+        event_type: eventType,
+        data: {
+          amount: parseInt(amount, 10),
+          token_name: tokenName,
+          source_address: 'QUBICABC123',
+          tick: 15234567,
+          usd_value_estimate: 22500,
+        },
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setAnnouncement(data.data);
+      if (data.discord_message) {
+        setAnnouncement(data);
       } else {
         setError('Announcement generation failed');
       }
-    } catch (err) {
-      setError('AI service unavailable. Check if OPENAI_API_KEY is set.');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'AI service unavailable. Check if OPENAI_API_KEY is set.');
     } finally {
       setLoading(false);
     }

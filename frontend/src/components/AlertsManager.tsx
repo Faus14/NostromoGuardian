@@ -124,7 +124,8 @@ export function AlertsManager() {
       setTestingId(id);
       const result = await api.testAlert(id);
       if (result.triggered) {
-        setSuccess(`Alert triggered! Found ${result.payload?.trades?.length || 'data'}`);
+        const count = Array.isArray(result.payload?.trades) ? result.payload.trades.length : 'data';
+        setSuccess(`Alert triggered! Found ${count}`);
       } else {
         setError(`Alert not triggered: ${result.reason || 'Conditions not met'}`);
       }

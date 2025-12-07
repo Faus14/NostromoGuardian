@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trophy, Target, Flame, TrendingUp, Award, Crown, Star, Zap } from 'lucide-react';
 import { BadgeShowcase } from '../components/BadgeShowcase';
 import { AchievementToast } from '../components/AchievementToast';
+import { api } from '../services/api';
 
 interface Achievement {
   id: string;
@@ -63,18 +64,13 @@ export default function Leaderboard() {
   const loadLeaderboards = async () => {
     try {
       setLoading(true);
-      
       const [tradersRes, huntersRes] = await Promise.all([
-        fetch(`http://localhost:3000/api/v1/leaderboard/traders?period=${period}&limit=50`).then(r => r.json()),
-        fetch(`http://localhost:3000/api/v1/leaderboard/whale-hunters?limit=20`).then(r => r.json())
+        api.getLeaderboardTraders(period, 50),
+        api.getLeaderboardWhaleHunters(20),
       ]);
 
-      if (tradersRes.success) {
-        setTraders(tradersRes.data.leaderboard);
-      }
-      if (huntersRes.success) {
-        setWhaleHunters(huntersRes.data.whale_hunters);
-      }
+      setTraders(tradersRes);
+      setWhaleHunters(huntersRes);
     } catch (error) {
       console.error('Failed to load leaderboards:', error);
     } finally {
@@ -135,11 +131,8 @@ export default function Leaderboard() {
     }
     
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/addresses/${trader.address}/trades?limit=50`);
-      const data = await response.json();
-      if (data.success) {
-        setTraderTrades(data.data);
-      }
+      const data = await api.getAddressTrades(trader.address, 50);
+      setTraderTrades(data);
     } catch (error) {
       console.error('Failed to load trader trades:', error);
     } finally {
