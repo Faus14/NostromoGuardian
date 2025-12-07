@@ -26,7 +26,9 @@ export const WEBHOOK_EVENTS = {
   VOLUME_SPIKE: 'volume.spike',
   PRICE_CHANGE: 'price.change',
   DIAMOND_HAND: 'achievement.diamond_hand',
-  LEADERBOARD_UPDATE: 'leaderboard.update'
+  LEADERBOARD_UPDATE: 'leaderboard.update',
+  ALERT_TRIGGERED: 'alert.triggered',
+  ALERT_FAILED: 'alert.failed'
 } as const;
 
 /**

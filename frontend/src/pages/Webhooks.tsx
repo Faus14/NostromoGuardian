@@ -18,13 +18,17 @@ const AVAILABLE_EVENTS = [
   { value: 'volume.spike', label: '📈 Volume Spike', color: 'text-purple-400' },
   { value: 'price.change', label: '💰 Price Change', color: 'text-yellow-400' },
   { value: 'achievement.diamond_hand', label: '💎 Diamond Hand', color: 'text-cyan-400' },
-  { value: 'leaderboard.update', label: '🏆 Leaderboard Update', color: 'text-orange-400' }
+  { value: 'leaderboard.update', label: '🏆 Leaderboard Update', color: 'text-orange-400' },
+  { value: 'alert.triggered', label: '⚠️ Alert Triggered', color: 'text-violet-400' },
+  { value: 'alert.failed', label: '❌ Alert Failed', color: 'text-red-400' }
 ];
 
 export default function Webhooks() {
   const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
   // Form state
   const [formUrl, setFormUrl] = useState('');
@@ -52,7 +56,8 @@ export default function Webhooks() {
 
   const registerWebhook = async () => {
     if (!formUrl || formEvents.length === 0) {
-      alert('Please fill in URL and select at least one event');
+      setError('Please fill in URL and select at least one event');
+      setTimeout(() => setError(null), 5000);
       return;
     }
 
@@ -72,16 +77,21 @@ export default function Webhooks() {
       if (data.success) {
         setRegisteredSecret(data.webhook.secret);
         fetchWebhooks();
+        setShowRegisterForm(false);
         // Reset form
         setFormUrl('');
         setFormEvents([]);
         setFormDescription('');
+        setSuccess('Webhook registered successfully!');
+        setTimeout(() => setSuccess(null), 3000);
       } else {
-        alert(`Error: ${data.error}`);
+        setError(data.error || 'Failed to register webhook');
+        setTimeout(() => setError(null), 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error registering webhook:', error);
-      alert('Failed to register webhook');
+      setError(error.message || 'Failed to register webhook');
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -96,9 +106,16 @@ export default function Webhooks() {
       const data = await response.json();
       if (data.success) {
         fetchWebhooks();
+        setSuccess('Webhook deleted successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to delete webhook');
+        setTimeout(() => setError(null), 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting webhook:', error);
+      setError(error.message || 'Failed to delete webhook');
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -113,9 +130,16 @@ export default function Webhooks() {
       const data = await response.json();
       if (data.success) {
         fetchWebhooks();
+        setSuccess(`Webhook ${active ? 'disabled' : 'enabled'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to toggle webhook');
+        setTimeout(() => setError(null), 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling webhook:', error);
+      setError(error.message || 'Failed to toggle webhook');
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -128,13 +152,16 @@ export default function Webhooks() {
       const data = await response.json();
       
       if (data.success) {
-        alert('✅ Test webhook delivered successfully!');
+        setSuccess('Test webhook delivered successfully!');
+        setTimeout(() => setSuccess(null), 3000);
       } else {
-        alert(`❌ Test failed: ${data.message}`);
+        setError(`Test failed: ${data.message}`);
+        setTimeout(() => setError(null), 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error testing webhook:', error);
-      alert('Failed to test webhook');
+      setError(error.message || 'Failed to test webhook');
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -148,7 +175,8 @@ export default function Webhooks() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    setSuccess('Copied to clipboard!');
+    setTimeout(() => setSuccess(null), 2000);
   };
 
   if (loading) {
@@ -161,6 +189,30 @@ export default function Webhooks() {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Toast Notifications */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 bg-red-500/90 backdrop-blur-sm border border-red-400 text-white px-6 py-4 rounded-lg shadow-2xl animate-fadeIn max-w-md">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">❌</span>
+            <div>
+              <p className="font-semibold">Error</p>
+              <p className="text-sm text-white/90">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {success && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500/90 backdrop-blur-sm border border-green-400 text-white px-6 py-4 rounded-lg shadow-2xl animate-fadeIn max-w-md">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">✅</span>
+            <div>
+              <p className="font-semibold">Success</p>
+              <p className="text-sm text-white/90">{success}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

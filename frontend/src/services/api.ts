@@ -120,6 +120,67 @@ export interface TokenAnalytics {
   topHolders: Holder[];
 }
 
+// Alert Engine types
+export type AlertEventType = 'volume.spike' | 'whale.buy' | 'holder.surge';
+
+export interface AlertConditions {
+  token?: string;
+  period_minutes?: number;
+  threshold_percent?: number;
+  min_volume?: string;
+  lookback_minutes?: number;
+  min_value?: string;
+  whales_only?: boolean;
+  limit?: number;
+  min_new_holders?: number;
+  sample_size?: number;
+}
+
+export interface AlertAction {
+  type: 'webhook';
+  event?: string;
+}
+
+export interface Alert {
+  id: number;
+  name: string;
+  description?: string;
+  event_type: AlertEventType;
+  conditions: AlertConditions;
+  actions: AlertAction[];
+  active: boolean;
+  created_at: string;
+  last_triggered: string | null;
+  trigger_count: number;
+}
+
+export interface CreateAlertRequest {
+  name: string;
+  description?: string;
+  event_type: AlertEventType;
+  conditions: AlertConditions;
+  actions?: AlertAction[];
+  active?: boolean;
+}
+
+export interface UpdateAlertRequest {
+  name?: string;
+  description?: string;
+  event_type?: AlertEventType;
+  conditions?: AlertConditions;
+  actions?: AlertAction[];
+  active?: boolean;
+}
+
+export interface AlertTestResult {
+  success: boolean;
+  alert_id: number;
+  triggered: boolean;
+  payload?: Record<string, any>;
+  reason?: string;
+  evaluated_at: string;
+}
+
 export interface TokenListItem {
   name: string;
   issuer: string;
@@ -187,6 +248,38 @@ class ApiClient {
   async getAddressHoldings(address: string) {
     const { data } = await axios.get(`${this.baseURL}/api/v1/addresses/${address}/holdings`);
     return data.data;
+  }
+
+  // Alert Engine endpoints
+  async createAlert(request: CreateAlertRequest): Promise<Alert> {
+    const { data } = await axios.post(`${this.baseURL}/api/v1/alerts`, request);
+    return data.alert;
+  }
+
+  async listAlerts(active?: boolean): Promise<Alert[]> {
+    const { data } = await axios.get(`${this.baseURL}/api/v1/alerts`, {
+      params: active !== undefined ? { active } : {},
+    });
+    return data.alerts;
+  }
+
+  async getAlert(id: number): Promise<Alert> {
+    const { data } = await axios.get(`${this.baseURL}/api/v1/alerts/${id}`);
+    return data.alert;
+  }
+
+  async updateAlert(id: number, request: UpdateAlertRequest): Promise<Alert> {
+    const { data } = await axios.patch(`${this.baseURL}/api/v1/alerts/${id}`, request);
+    return data.alert;
+  }
+
+  async deleteAlert(id: number): Promise<void> {
+    await axios.delete(`${this.baseURL}/api/v1/alerts/${id}`);
+  }
+
+  async testAlert(id: number): Promise<AlertTestResult> {
+    const { data } = await axios.post(`${this.baseURL}/api/v1/alerts/${id}/test`);
+    return data;
   }
 }
 

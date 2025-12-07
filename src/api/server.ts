@@ -5,7 +5,7 @@ import { getDatabase } from '../services/database.service';
 import { getAnalyticsEngine } from '../analytics/engine';
 import { getRPCService } from '../services/rpc.service';
 import { APIResponse, PaginatedResponse, TokenAnalytics } from '../types';
-import { getRecentEvents, getWhaleAlerts } from './events';
+import { getRecentEvents, getWhaleAlerts, triggerBadgeUnlock, triggerMilestone } from './events';
 import { getTopTraders, getWhaleHunters } from './leaderboard';
 import { getAirdropEligible, getDiamondHands } from './airdrops';
 import { 
@@ -16,14 +16,29 @@ import {
   testWebhook 
 } from './webhooks';
 import { exportHolders, exportTrades, exportLeaderboard } from './exports';
+import { 
+  createAlert,
+  listAlerts,
+  getAlert,
+  updateAlert,
+  deleteAlert,
+  testAlert,
+} from './alerts';
+import { startAlertEngine } from '../services/alert-engine.service';
+import aiRoutes from './ai';
 
 const app = express();
 const db = getDatabase();
 const analytics = getAnalyticsEngine();
 const rpc = getRPCService();
 
-// Middleware
-app.use(cors({ origin: config.api.corsOrigin }));
+// Middleware - CORS mejorado para desarrollo
+app.use(cors({ 
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Request logging middleware
@@ -70,6 +85,11 @@ app.get('/api/v1/status', async (req: Request, res: Response) => {
     });
   }
 });
+
+// ============================================================================
+// AI ENDPOINTS (GPT-4 Powered)
+// ============================================================================
+app.use('/api/v1/ai', aiRoutes);
 
 // ============================================================================
 // TOKEN ANALYTICS ENDPOINTS (Live Tree - Real Data)
@@ -497,6 +517,8 @@ function getGrowthInterpretation(score: number): string {
 // Events & Alerts
 app.get('/api/v1/events/recent', getRecentEvents);
 app.get('/api/v1/events/whale-alerts', getWhaleAlerts);
+app.post('/api/v1/events/badge-unlock', triggerBadgeUnlock);
+app.post('/api/v1/events/milestone-reached', triggerMilestone);
 
 // Gamification & Community
 app.get('/api/v1/leaderboard/traders', getTopTraders);
@@ -512,6 +534,14 @@ app.get('/api/v1/webhooks/list', listWebhooks);
 app.delete('/api/v1/webhooks/:id', unregisterWebhook);
 app.patch('/api/v1/webhooks/:id', updateWebhook);
 app.post('/api/v1/webhooks/:id/test', testWebhook);
+
+// Alert Engine
+app.post('/api/v1/alerts', createAlert);
+app.get('/api/v1/alerts', listAlerts);
+app.get('/api/v1/alerts/:id', getAlert);
+app.patch('/api/v1/alerts/:id', updateAlert);
+app.delete('/api/v1/alerts/:id', deleteAlert);
+app.post('/api/v1/alerts/:id/test', testAlert);
 
 // Data Exports (CSV/JSON)
 app.get('/api/v1/exports/holders', exportHolders);
@@ -562,10 +592,19 @@ export function startAPIServer(): void {
     console.log(`  - DELETE /api/v1/webhooks/:id`);
     console.log(`  - PATCH  /api/v1/webhooks/:id`);
     console.log(`  - POST   /api/v1/webhooks/:id/test`);
+    console.log(`\n⚠️  Alert Engine (Rules-as-a-Service):`);
+    console.log(`  - POST   /api/v1/alerts`);
+    console.log(`  - GET    /api/v1/alerts`);
+    console.log(`  - GET    /api/v1/alerts/:id`);
+    console.log(`  - PATCH  /api/v1/alerts/:id`);
+    console.log(`  - DELETE /api/v1/alerts/:id`);
+    console.log(`  - POST   /api/v1/alerts/:id/test`);
     console.log(`\n📊 Data Exports (Google Sheets/Excel):`);
     console.log(`  - GET    /api/v1/exports/holders?token=QMINE&format=csv`);
     console.log(`  - GET    /api/v1/exports/trades?period=7d&format=json`);
     console.log(`  - GET    /api/v1/exports/leaderboard?format=csv`);
+
+    startAlertEngine();
   });
 }
 

@@ -1,0 +1,184 @@
+{
+  "name": "Qubic Whale Alert → Discord",
+  "description": "Automatically send Discord notifications when whale transactions are detected on Qubic",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "nostromo-webhook",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "restore": {},
+        "expect": [
+          {
+            "name": "event_type",
+            "type": "text",
+            "label": "Event Type"
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "label": "Event Data",
+            "spec": [
+              {
+                "name": "transaction_hash",
+                "type": "text",
+                "label": "Transaction Hash"
+              },
+              {
+                "name": "source_address",
+                "type": "text",
+                "label": "Source Address"
+              },
+              {
+                "name": "dest_address",
+                "type": "text",
+                "label": "Destination Address"
+              },
+              {
+                "name": "amount",
+                "type": "number",
+                "label": "Amount (QU)"
+              },
+              {
+                "name": "tick",
+                "type": "number",
+                "label": "Tick Number"
+              },
+              {
+                "name": "timestamp",
+                "type": "date",
+                "label": "Timestamp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "gateway:CustomWebHook:filter",
+      "version": 1,
+      "parameters": {},
+      "filter": {
+        "name": "Only Whale Transactions",
+        "conditions": [
+          [
+            {
+              "a": "{{1.event_type}}",
+              "b": "whale.buy",
+              "o": "text:equal"
+            }
+          ],
+          [
+            {
+              "a": "{{1.data.amount}}",
+              "b": "10000000",
+              "o": "number:greater"
+            }
+          ]
+        ]
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "discord:createAMessage",
+      "version": 1,
+      "parameters": {
+        "webhook": "discord-webhook"
+      },
+      "mapper": {
+        "embeds": [
+          {
+            "title": "🐋 WHALE ALERT",
+            "description": "A large transaction was detected on Qubic network",
+            "color": "16711680",
+            "fields": [
+              {
+                "name": "💰 Amount",
+                "value": "{{formatNumber(1.data.amount; 0; ','; '.')}} QU",
+                "inline": true
+              },
+              {
+                "name": "📊 Tick",
+                "value": "{{1.data.tick}}",
+                "inline": true
+              },
+              {
+                "name": "🔗 From",
+                "value": "`{{substring(1.data.source_address; 0; 20)}}...`",
+                "inline": false
+              },
+              {
+                "name": "➡️ To",
+                "value": "`{{substring(1.data.dest_address; 0; 20)}}...`",
+                "inline": false
+              },
+              {
+                "name": "🔍 Explorer",
+                "value": "[View Transaction](https://explorer.qubic.org/network/tx/{{1.data.transaction_hash}})",
+                "inline": false
+              }
+            ],
+            "timestamp": "{{1.data.timestamp}}",
+            "footer": {
+              "text": "Nostromo Guardian • Powered by EasyConnect"
+            }
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        },
+        "restore": {
+          "webhook": {
+            "label": "Discord Webhook"
+          }
+        },
+        "expect": [
+          {
+            "name": "embeds",
+            "type": "array",
+            "label": "Embeds",
+            "spec": {
+              "type": "collection"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": false,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "us1.make.com"
+  }
+}

@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Activity, BarChart3, Users, Zap, Trophy, Webhook } from 'lucide-react';
+import { Activity, BarChart3, Users, Zap, Trophy, Webhook, Bell, Sparkles } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import TokenAnalyzer from './pages/TokenAnalyzer';
 import AddressLookup from './pages/AddressLookup';
 import Integrations from './pages/Integrations';
 import Leaderboard from './pages/Leaderboard';
 import Webhooks from './pages/Webhooks';
+import AIAnalytics from './pages/AIAnalytics';
+import { AlertsManager } from './components/AlertsManager';
 
 function App() {
   return (
@@ -56,6 +58,20 @@ function App() {
                     Webhooks
                   </Link>
                   <Link
+                    to="/alerts"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2"
+                  >
+                    <Bell className="w-4 h-4" />
+                    Alerts
+                  </Link>
+                  <Link
+                    to="/ai"
+                    className="text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 border border-purple-500/30"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    AI Analytics
+                  </Link>
+                  <Link
                     to="/integrations"
                     className="text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 border border-yellow-500/30"
                   >
@@ -76,6 +92,8 @@ function App() {
             <Route path="/address" element={<AddressLookup />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/webhooks" element={<Webhooks />} />
+            <Route path="/alerts" element={<AlertsManager />} />
+            <Route path="/ai" element={<AIAnalytics />} />
             <Route path="/integrations" element={<Integrations />} />
           </Routes>
         </main>

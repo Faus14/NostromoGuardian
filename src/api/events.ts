@@ -231,3 +231,249 @@ export async function getWhaleAlerts(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * POST /api/v1/events/badge-unlock
+ * 
+ * Trigger badge unlock event to EasyConnect webhooks
+ * Body:
+ *   - address: wallet address
+ *   - badge_id: unique badge identifier
+ *   - badge_name: display name
+ *   - badge_emoji: emoji icon
+ *   - rarity: common|rare|epic|legendary
+ *   - description: badge description
+ */
+export async function triggerBadgeUnlock(req: Request, res: Response) {
+  try {
+    const { address, badge_id, badge_name, badge_emoji, rarity, description } = req.body;
+
+    if (!address || !badge_id || !badge_name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: address, badge_id, badge_name'
+      });
+    }
+
+    // Get trader stats
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as trade_count,
+        SUM(CASE WHEN input_amount > 0 THEN 1 ELSE 0 END) as buy_count,
+        SUM(CASE WHEN output_amount > 0 THEN 1 ELSE 0 END) as sell_count,
+        COALESCE(SUM(input_amount + output_amount), 0) as total_volume,
+        COALESCE(AVG(input_amount + output_amount), 0) as avg_trade_size,
+        COALESCE(MAX(input_amount + output_amount), 0) as biggest_trade
+      FROM trades 
+      WHERE source_public_id = $1 OR dest_public_id = $1
+    `;
+    
+    const statsResult = await db.query(statsQuery, [address]);
+    const stats = statsResult.rows[0] || {};
+
+    // Get leaderboard rank
+    const rankQuery = `
+      SELECT 
+        rank
+      FROM (
+        SELECT 
+          COALESCE(source_public_id, dest_public_id) as trader,
+          SUM(input_amount + output_amount) as total_volume,
+          RANK() OVER (ORDER BY SUM(input_amount + output_amount) DESC) as rank
+        FROM trades
+        WHERE executed_tick_number > 0
+        GROUP BY COALESCE(source_public_id, dest_public_id)
+      ) t
+      WHERE trader = $1
+    `;
+    
+    const rankResult = await db.query(rankQuery, [address]);
+    const rank = rankResult.rows[0]?.rank || 999;
+
+    // Construct webhook payload
+    const payload = {
+      event_type: 'achievement.unlocked',
+      timestamp: new Date().toISOString(),
+      data: {
+        user_address: address,
+        badge_id,
+        badge_name,
+        badge_emoji,
+        rarity: rarity || 'common',
+        description: description || '',
+        rank: parseInt(rank),
+        total_volume: parseFloat(stats.total_volume || '0'),
+        trade_count: parseInt(stats.trade_count || '0'),
+        buy_count: parseInt(stats.buy_count || '0'),
+        sell_count: parseInt(stats.sell_count || '0')
+      }
+    };
+
+    // Dispatch to all active webhooks subscribed to achievement events
+    const webhooksQuery = `
+      SELECT id, url, secret, retry_count
+      FROM webhooks
+      WHERE active = true 
+      AND 'achievement.unlocked' = ANY(events)
+    `;
+    const webhooks = await db.query(webhooksQuery);
+    
+    for (const webhook of webhooks.rows) {
+      // Send webhook (fire and forget for now, alert engine handles retries)
+      try {
+        const crypto = await import('crypto');
+        const signature = crypto.createHmac('sha256', webhook.secret || '')
+          .update(JSON.stringify(payload))
+          .digest('hex');
+        
+        await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': `sha256:${signature}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error(`Webhook ${webhook.id} delivery failed:`, err);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Badge unlock event dispatched to webhooks',
+      data: payload
+    });
+
+  } catch (error: any) {
+    console.error('[Badge Unlock Event] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * POST /api/v1/events/milestone-reached
+ * 
+ * Trigger holder milestone event to EasyConnect webhooks
+ * Body:
+ *   - token_id: token issuer ID
+ *   - token_name: token display name
+ *   - milestone: holder count milestone reached
+ */
+export async function triggerMilestone(req: Request, res: Response) {
+  try {
+    const { token_id, token_name, milestone } = req.body;
+
+    if (!token_id || !milestone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: token_id, milestone'
+      });
+    }
+
+    // Get current holder count
+    const holderQuery = `
+      SELECT 
+        COUNT(DISTINCT address) as holder_count
+      FROM (
+        SELECT source_public_id as address FROM trades WHERE issuer_id = $1
+        UNION
+        SELECT dest_public_id as address FROM trades WHERE issuer_id = $1
+      ) t
+      WHERE address IS NOT NULL
+    `;
+    
+    const holderResult = await db.query(holderQuery, [token_id]);
+    const holder_count = parseInt(holderResult.rows[0]?.holder_count || '0');
+
+    // Get top holders
+    const topHoldersQuery = `
+      SELECT 
+        address,
+        balance,
+        RANK() OVER (ORDER BY balance DESC) as rank
+      FROM (
+        SELECT 
+          address,
+          SUM(amount) as balance
+        FROM (
+          SELECT dest_public_id as address, SUM(input_amount) as amount 
+          FROM trades WHERE issuer_id = $1 GROUP BY dest_public_id
+          UNION ALL
+          SELECT source_public_id as address, -SUM(output_amount) as amount 
+          FROM trades WHERE issuer_id = $1 GROUP BY source_public_id
+        ) t
+        WHERE address IS NOT NULL
+        GROUP BY address
+      ) balances
+      WHERE balance > 0
+      ORDER BY balance DESC
+      LIMIT 10
+    `;
+    
+    const holdersResult = await db.query(topHoldersQuery, [token_id]);
+
+    // Construct webhook payload
+    const payload = {
+      event_type: 'holder.surge',
+      timestamp: new Date().toISOString(),
+      data: {
+        token_id,
+        token_name: token_name || token_id,
+        holder_count,
+        milestone: parseInt(milestone),
+        growth_percentage: ((holder_count / milestone) * 100).toFixed(2),
+        holders: holdersResult.rows.map((h: any) => ({
+          address: h.address,
+          balance: parseFloat(h.balance || '0'),
+          rank: parseInt(h.rank)
+        }))
+      }
+    };
+
+    // Dispatch to all active webhooks subscribed to holder surge events
+    const webhooksQuery = `
+      SELECT id, url, secret, retry_count
+      FROM webhooks
+      WHERE active = true 
+      AND 'holder.surge' = ANY(events)
+    `;
+    const webhooks = await db.query(webhooksQuery);
+    
+    for (const webhook of webhooks.rows) {
+      try {
+        const crypto = await import('crypto');
+        const signature = crypto.createHmac('sha256', webhook.secret || '')
+          .update(JSON.stringify(payload))
+          .digest('hex');
+        
+        await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': `sha256:${signature}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error(`Webhook ${webhook.id} delivery failed:`, err);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Milestone event dispatched to webhooks',
+      data: payload
+    });
+
+  } catch (error: any) {
+    console.error('[Milestone Event] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}

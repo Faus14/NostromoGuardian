@@ -1,0 +1,274 @@
+{
+  "name": "🤖 AI-Powered Whale Alert → Multi-Channel",
+  "description": "GPT-4 enhanced whale alerts with auto-generated messages for Discord, Telegram, and Twitter",
+  "version": "2.0",
+  "ai_features": [
+    "Auto-generated Discord embeds",
+    "Professional Telegram messages",
+    "Twitter posts with hashtags",
+    "Sentiment analysis included",
+    "Risk assessment badges"
+  ],
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "nostromo-ai-webhook",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "restore": {},
+        "expect": [
+          {
+            "name": "event_type",
+            "type": "text",
+            "label": "Event Type",
+            "help": "whale.buy, whale.sell, volume.spike"
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "label": "Event Data"
+          },
+          {
+            "name": "ai_generated",
+            "type": "collection",
+            "label": "AI Generated Content",
+            "spec": [
+              {
+                "name": "discord_message",
+                "type": "text",
+                "label": "Discord Message"
+              },
+              {
+                "name": "telegram_message",
+                "type": "text",
+                "label": "Telegram Message"
+              },
+              {
+                "name": "twitter_post",
+                "type": "text",
+                "label": "Twitter Post"
+              }
+            ]
+          },
+          {
+            "name": "ai_insights",
+            "type": "collection",
+            "label": "AI Trading Insights",
+            "spec": [
+              {
+                "name": "sentiment",
+                "type": "text",
+                "label": "Sentiment (bullish/bearish/neutral)"
+              },
+              {
+                "name": "risk_level",
+                "type": "text",
+                "label": "Risk Level (low/medium/high)"
+              },
+              {
+                "name": "confidence",
+                "type": "number",
+                "label": "Confidence Score (0-1)"
+              },
+              {
+                "name": "recommendation",
+                "type": "text",
+                "label": "Trading Recommendation"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "routes": [
+          {
+            "flow": [
+              {
+                "id": 3,
+                "module": "discord:sendChannelMessage",
+                "version": 1,
+                "parameters": {
+                  "channelId": "YOUR_DISCORD_CHANNEL_ID"
+                },
+                "mapper": {
+                  "content": "{{1.ai_generated.discord_message}}",
+                  "embeds": [
+                    {
+                      "title": "🤖 AI Analysis",
+                      "color": "{{if(1.ai_insights.sentiment = \"bullish\"; 5025616; if(1.ai_insights.sentiment = \"bearish\"; 15746887; 16705372))}}",
+                      "fields": [
+                        {
+                          "name": "Sentiment",
+                          "value": "{{capitalize(1.ai_insights.sentiment)}}",
+                          "inline": true
+                        },
+                        {
+                          "name": "Risk Level",
+                          "value": "{{capitalize(1.ai_insights.risk_level)}}",
+                          "inline": true
+                        },
+                        {
+                          "name": "Confidence",
+                          "value": "{{formatNumber(1.ai_insights.confidence * 100; 0)}}%",
+                          "inline": true
+                        },
+                        {
+                          "name": "💡 Recommendation",
+                          "value": "{{1.ai_insights.recommendation}}"
+                        }
+                      ],
+                      "footer": {
+                        "text": "Powered by GPT-4 • Nostromo Guardian"
+                      },
+                      "timestamp": "{{now}}"
+                    }
+                  ]
+                },
+                "metadata": {
+                  "designer": {
+                    "x": 300,
+                    "y": -100
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "flow": [
+              {
+                "id": 4,
+                "module": "telegram:sendMessage",
+                "version": 1,
+                "parameters": {
+                  "chatId": "YOUR_TELEGRAM_CHAT_ID"
+                },
+                "mapper": {
+                  "text": "{{1.ai_generated.telegram_message}}\n\n🤖 *AI Insights:*\n• Sentiment: {{1.ai_insights.sentiment}}\n• Risk: {{1.ai_insights.risk_level}}\n• Confidence: {{formatNumber(1.ai_insights.confidence * 100; 0)}}%",
+                  "parse_mode": "Markdown"
+                },
+                "metadata": {
+                  "designer": {
+                    "x": 300,
+                    "y": 0
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "flow": [
+              {
+                "id": 5,
+                "module": "twitter:createTweet",
+                "version": 1,
+                "parameters": {},
+                "mapper": {
+                  "text": "{{1.ai_generated.twitter_post}}"
+                },
+                "metadata": {
+                  "designer": {
+                    "x": 300,
+                    "y": 100
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 150,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 6,
+      "module": "google-sheets:addRow",
+      "version": 1,
+      "parameters": {
+        "spreadsheetId": "YOUR_SPREADSHEET_ID",
+        "sheetId": "Whale Trades"
+      },
+      "mapper": {
+        "values": {
+          "Timestamp": "{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\")}}",
+          "Event Type": "{{1.event_type}}",
+          "Token": "{{1.data.token_name}}",
+          "Amount": "{{formatNumber(1.data.amount; 0; \",\"; \".\")}}",
+          "USD Value": "${{formatNumber(1.data.usd_value_estimate; 2)}}",
+          "Sentiment": "{{1.ai_insights.sentiment}}",
+          "Risk Level": "{{1.ai_insights.risk_level}}",
+          "Confidence": "{{formatNumber(1.ai_insights.confidence * 100; 0)}}%",
+          "Recommendation": "{{1.ai_insights.recommendation}}",
+          "Source": "{{1.data.source_address}}",
+          "Destination": "{{1.data.dest_address}}"
+        }
+      },
+      "metadata": {
+        "designer": {
+          "x": 450,
+          "y": 0
+        }
+      }
+    }
+  ],
+  "setup_instructions": {
+    "step_1": "Import this blueprint to Make.com",
+    "step_2": "Replace YOUR_DISCORD_CHANNEL_ID with your channel ID",
+    "step_3": "Replace YOUR_TELEGRAM_CHAT_ID with your chat ID",
+    "step_4": "Connect Twitter account (optional)",
+    "step_5": "Create Google Sheet with columns: Timestamp, Event Type, Token, Amount, USD Value, Sentiment, Risk Level, Confidence, Recommendation, Source, Destination",
+    "step_6": "Copy webhook URL from Make.com",
+    "step_7": "Register webhook in Nostromo Guardian: POST /api/v1/webhooks/register",
+    "step_8": "Ensure OPENAI_API_KEY is set in Nostromo backend .env"
+  },
+  "webhook_payload_example": {
+    "event_type": "whale.buy",
+    "data": {
+      "amount": 15000000,
+      "token_name": "QMINE",
+      "source_address": "QUBIC...",
+      "usd_value_estimate": 22500
+    },
+    "ai_generated": {
+      "discord_message": "🚨 **Whale Alert!** A massive 15M QMINE...",
+      "telegram_message": "🚨 Whale Alert! Someone just transferred...",
+      "twitter_post": "🚨 Whale alert on #QubicBlockchain!..."
+    },
+    "ai_insights": {
+      "sentiment": "bullish",
+      "risk_level": "medium",
+      "confidence": 0.78,
+      "recommendation": "Monitor for rally continuation",
+      "insights": ["Top 5 holder accumulating", "Historical pattern suggests +20%"]
+    }
+  },
+  "benefits": [
+    "✅ No manual content creation needed",
+    "✅ Professional messages in 3 platforms simultaneously",
+    "✅ AI sentiment analysis included",
+    "✅ Risk assessment for decision making",
+    "✅ Automated Google Sheets logging",
+    "✅ Beautiful Discord embeds with color-coded sentiment",
+    "✅ Markdown formatting for Telegram",
+    "✅ Optimized Twitter posts with hashtags"
+  ],
+  "cost_per_event": "$0.06 (OpenAI) + $0.001 (Make.com) = ~$0.061 total"
+}
