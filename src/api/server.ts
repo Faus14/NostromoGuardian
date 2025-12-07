@@ -5,6 +5,17 @@ import { getDatabase } from '../services/database.service';
 import { getAnalyticsEngine } from '../analytics/engine';
 import { getRPCService } from '../services/rpc.service';
 import { APIResponse, PaginatedResponse, TokenAnalytics } from '../types';
+import { getRecentEvents, getWhaleAlerts } from './events';
+import { getTopTraders, getWhaleHunters } from './leaderboard';
+import { getAirdropEligible, getDiamondHands } from './airdrops';
+import { 
+  registerWebhook, 
+  listWebhooks, 
+  unregisterWebhook, 
+  updateWebhook, 
+  testWebhook 
+} from './webhooks';
+import { exportHolders, exportTrades, exportLeaderboard } from './exports';
 
 const app = express();
 const db = getDatabase();
@@ -480,6 +491,34 @@ function getGrowthInterpretation(score: number): string {
 }
 
 // ============================================================================
+// EASYCONNECT INTEGRATION ENDPOINTS
+// ============================================================================
+
+// Events & Alerts
+app.get('/api/v1/events/recent', getRecentEvents);
+app.get('/api/v1/events/whale-alerts', getWhaleAlerts);
+
+// Gamification & Community
+app.get('/api/v1/leaderboard/traders', getTopTraders);
+app.get('/api/v1/leaderboard/whale-hunters', getWhaleHunters);
+
+// Airdrop Automation
+app.get('/api/v1/airdrops/eligible', getAirdropEligible);
+app.get('/api/v1/airdrops/diamond-hands', getDiamondHands);
+
+// Webhooks Management
+app.post('/api/v1/webhooks/register', registerWebhook);
+app.get('/api/v1/webhooks/list', listWebhooks);
+app.delete('/api/v1/webhooks/:id', unregisterWebhook);
+app.patch('/api/v1/webhooks/:id', updateWebhook);
+app.post('/api/v1/webhooks/:id/test', testWebhook);
+
+// Data Exports (CSV/JSON)
+app.get('/api/v1/exports/holders', exportHolders);
+app.get('/api/v1/exports/trades', exportTrades);
+app.get('/api/v1/exports/leaderboard', exportLeaderboard);
+
+// ============================================================================
 // ERROR HANDLING
 // ============================================================================
 
@@ -510,6 +549,23 @@ export function startAPIServer(): void {
     console.log(`  - GET  /api/v1/tokens/:issuer/:name/growth-score`);
     console.log(`  - GET  /api/v1/addresses/:address/trades`);
     console.log(`  - GET  /api/v1/addresses/:address/holdings`);
+    console.log(`\n🔗 EasyConnect Integration:`);
+    console.log(`  - GET  /api/v1/events/recent`);
+    console.log(`  - GET  /api/v1/events/whale-alerts`);
+    console.log(`  - GET  /api/v1/leaderboard/traders`);
+    console.log(`  - GET  /api/v1/leaderboard/whale-hunters`);
+    console.log(`  - GET  /api/v1/airdrops/eligible?token=QMINE`);
+    console.log(`  - GET  /api/v1/airdrops/diamond-hands?token=QMINE`);
+    console.log(`\n📢 Webhooks (Make/Zapier/n8n):`);
+    console.log(`  - POST   /api/v1/webhooks/register`);
+    console.log(`  - GET    /api/v1/webhooks/list`);
+    console.log(`  - DELETE /api/v1/webhooks/:id`);
+    console.log(`  - PATCH  /api/v1/webhooks/:id`);
+    console.log(`  - POST   /api/v1/webhooks/:id/test`);
+    console.log(`\n📊 Data Exports (Google Sheets/Excel):`);
+    console.log(`  - GET    /api/v1/exports/holders?token=QMINE&format=csv`);
+    console.log(`  - GET    /api/v1/exports/trades?period=7d&format=json`);
+    console.log(`  - GET    /api/v1/exports/leaderboard?format=csv`);
   });
 }
 

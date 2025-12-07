@@ -426,3 +426,15 @@ export function getDatabase(): DatabaseService {
   }
   return dbInstance;
 }
+
+// Export pool directly for simple queries
+export const pool = new Pool({
+  host: config.database.host,
+  port: config.database.port,
+  database: config.database.name,
+  user: config.database.user,
+  password: config.database.password,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});

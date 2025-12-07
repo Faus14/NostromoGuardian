@@ -1,8 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Activity, BarChart3, Users } from 'lucide-react';
+import { Activity, BarChart3, Users, Zap, Trophy, Webhook } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import TokenAnalyzer from './pages/TokenAnalyzer';
 import AddressLookup from './pages/AddressLookup';
+import Integrations from './pages/Integrations';
+import Leaderboard from './pages/Leaderboard';
+import Webhooks from './pages/Webhooks';
 
 function App() {
   return (
@@ -38,6 +41,27 @@ function App() {
                     <Users className="w-4 h-4" />
                     Address Lookup
                   </Link>
+                  <Link
+                    to="/leaderboard"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    Leaderboard
+                  </Link>
+                  <Link
+                    to="/webhooks"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2"
+                  >
+                    <Webhook className="w-4 h-4" />
+                    Webhooks
+                  </Link>
+                  <Link
+                    to="/integrations"
+                    className="text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 border border-yellow-500/30"
+                  >
+                    <Zap className="w-4 h-4" />
+                    EasyConnect
+                  </Link>
                 </div>
               </div>
             </div>
@@ -50,6 +74,9 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/token" element={<TokenAnalyzer />} />
             <Route path="/address" element={<AddressLookup />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/webhooks" element={<Webhooks />} />
+            <Route path="/integrations" element={<Integrations />} />
           </Routes>
         </main>
 

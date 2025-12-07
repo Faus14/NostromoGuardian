@@ -337,3 +337,59 @@ SELECT
   tm.updated_at
 FROM token_metrics tm
 ORDER BY tm.total_volume_24h DESC;
+
+-- ============================================================================
+-- WEBHOOK SYSTEM TABLES
+-- ============================================================================
+
+-- Stores webhook subscriptions
+CREATE TABLE IF NOT EXISTS webhooks (
+  id SERIAL PRIMARY KEY,
+  url TEXT NOT NULL,
+  events JSONB NOT NULL,
+  description TEXT,
+  secret TEXT NOT NULL,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_triggered TIMESTAMP,
+  
+  CONSTRAINT webhooks_url_unique UNIQUE(url)
+);
+
+-- Stores webhook delivery logs
+CREATE TABLE IF NOT EXISTS webhook_logs (
+  id SERIAL PRIMARY KEY,
+  webhook_id INTEGER NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+  event VARCHAR(64) NOT NULL,
+  success BOOLEAN NOT NULL,
+  status_code INTEGER,
+  error_message TEXT,
+  delivered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_webhook_id ON webhook_logs(webhook_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_event ON webhook_logs(event);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_delivered_at ON webhook_logs(delivered_at);
+
+-- Stores alert configurations
+CREATE TABLE IF NOT EXISTS alerts (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  description TEXT,
+  event_type VARCHAR(64) NOT NULL,
+  conditions JSONB NOT NULL,
+  actions JSONB NOT NULL,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_triggered TIMESTAMP,
+  trigger_count INTEGER DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(active);
+CREATE INDEX IF NOT EXISTS idx_webhooks_events ON webhooks USING GIN(events);
+CREATE INDEX IF NOT EXISTS idx_alerts_active ON alerts(active);
+CREATE INDEX IF NOT EXISTS idx_alerts_event_type ON alerts(event_type);
+
+COMMENT ON TABLE webhooks IS 'Webhook subscriptions for EasyConnect integrations (Make, Zapier, n8n)';
+COMMENT ON TABLE webhook_logs IS 'Delivery history and retry logs for webhook events';
+COMMENT ON TABLE alerts IS 'Smart alert configurations with conditions and actions';

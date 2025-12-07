@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
 
 interface AddressLinkProps {
   address: string;
@@ -17,10 +18,11 @@ export function AddressLink({ address, truncate = 12, className = '' }: AddressL
   return (
     <Link
       to={`/address?address=${encodeURIComponent(address)}`}
-      className={`text-cyan-400 hover:text-cyan-300 font-mono ${className}`}
-      title={address}
+      className={`inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-mono transition-colors group ${className}`}
+      title={`View details for ${address}`}
     >
-      {short}
+      <span>{short}</span>
+      <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
     </Link>
   );
 }
