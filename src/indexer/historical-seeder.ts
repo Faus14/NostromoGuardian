@@ -218,10 +218,14 @@ export class HistoricalSeeder {
         tokenName: tx.asset.name,
         tradeType: tx.operation,
         trader: tx.sourceId,
-        price: tx.orderDetails?.price || BigInt(0),
-        amount: tx.orderDetails?.shares || BigInt(0),
-        totalValue: tx.orderDetails?.totalValue || BigInt(0),
-        pricePerUnit: Number(tx.orderDetails?.price || BigInt(0)),
+        price: (tx.orderDetails?.price || BigInt(0)).toString(),
+        amount: (tx.orderDetails?.shares || BigInt(0)).toString(),
+        totalValue: (tx.orderDetails?.totalValue || BigInt(0)).toString(),
+        pricePerUnit: (() => {
+          const price = tx.orderDetails?.price || BigInt(0);
+          const shares = tx.orderDetails?.shares || BigInt(0);
+          return shares !== BigInt(0) ? Number(price) / Number(shares) : 0;
+        })(),
       };
 
       trades.push(trade);
@@ -235,9 +239,10 @@ export class HistoricalSeeder {
    */
   private async updateHolderBalances(trades: Trade[]): Promise<void> {
     for (const trade of trades) {
-      const balanceChange = trade.tradeType === 'BUY' ? trade.amount : -trade.amount;
-      const bought = trade.tradeType === 'BUY' ? trade.amount : BigInt(0);
-      const sold = trade.tradeType === 'SELL' ? trade.amount : BigInt(0);
+      const amount = BigInt(trade.amount);
+      const balanceChange = trade.tradeType === 'BUY' ? amount : -amount;
+      const bought = trade.tradeType === 'BUY' ? amount : BigInt(0);
+      const sold = trade.tradeType === 'SELL' ? amount : BigInt(0);
       const buyCount = trade.tradeType === 'BUY' ? 1 : 0;
       const sellCount = trade.tradeType === 'SELL' ? 1 : 0;
 

@@ -247,12 +247,14 @@ export class IndexerEngine {
         tokenName: tx.asset.name,
         tradeType: tx.operation,
         trader: tx.sourceId,
-        price: tx.orderDetails?.price || BigInt(0),
-        amount: tx.orderDetails?.shares || BigInt(0),
-        totalValue: tx.orderDetails?.totalValue || tx.amount,
-        pricePerUnit: tx.orderDetails
-          ? Number(tx.orderDetails.price) / Number(tx.orderDetails.shares)
-          : 0,
+        price: (tx.orderDetails?.price || BigInt(0)).toString(),
+        amount: (tx.orderDetails?.shares || BigInt(0)).toString(),
+        totalValue: (tx.orderDetails?.totalValue || tx.amount).toString(),
+        pricePerUnit: (() => {
+          const price = tx.orderDetails?.price || BigInt(0);
+          const shares = tx.orderDetails?.shares || BigInt(0);
+          return shares !== BigInt(0) ? Number(price) / Number(shares) : 0;
+        })(),
       };
 
       trades.push(trade);
@@ -295,11 +297,13 @@ export class IndexerEngine {
 
       const holder = holderMap.get(key)!;
 
+      const amount = BigInt(trade.amount);
+
       if (trade.tradeType === 'BUY') {
-        holder.bought += trade.amount;
+        holder.bought += amount;
         holder.buyCount++;
       } else {
-        holder.sold += trade.amount;
+        holder.sold += amount;
         holder.sellCount++;
       }
 
