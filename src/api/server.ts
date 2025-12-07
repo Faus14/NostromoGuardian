@@ -32,13 +32,26 @@ const db = getDatabase();
 const analytics = getAnalyticsEngine();
 const rpc = getRPCService();
 
-// Middleware - CORS mejorado para desarrollo
-app.use(cors({ 
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// Middleware - CORS (allow configured origin + local dev)
+const allowedOrigins = [
+  config.api.corsOrigin,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow same-origin / curl
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.use(express.json());
 
 // Request logging middleware
