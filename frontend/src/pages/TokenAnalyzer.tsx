@@ -75,7 +75,7 @@ export default function TokenAnalyzer() {
           </div>
           <div>
             <h1 className="text-4xl font-bold text-white mb-1">Token Analyzer</h1>
-            <p className="text-gray-400">Advanced on-chain analytics for the Qubic ecosystem</p>
+            <p className="text-gray-400">Nostromo Guardian analytics for the Qubic ecosystem</p>
           </div>
         </div>
       </div>

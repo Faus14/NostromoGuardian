@@ -1,5 +1,5 @@
 -- ============================================================================
--- QUBIC TOKEN ANALYZER - DATABASE SCHEMA
+-- NOSTROMO GUARDIAN - DATABASE SCHEMA
 -- ============================================================================
 -- This schema stores all indexed data for on-chain analytics
 -- Optimized for fast queries on holder distribution, volume, and risk metrics

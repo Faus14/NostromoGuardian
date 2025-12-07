@@ -36,7 +36,7 @@ export default function Dashboard() {
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-qubic-primary/20 border-t-qubic-primary"></div>
           <Zap className="w-8 h-8 text-qubic-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
         </div>
-        <p className="text-gray-400 mt-4 animate-pulse">Connecting to Qubic Network...</p>
+        <p className="text-gray-400 mt-4 animate-pulse">Connecting to Nostromo Guardian (Qubic Network)...</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function Dashboard() {
                 <Activity className="w-8 h-8 text-qubic-primary" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-white mb-1">Qubic Network</h1>
+                <h1 className="text-4xl font-bold text-white mb-1">Nostromo Guardian</h1>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-green-400 font-medium">Live</span>

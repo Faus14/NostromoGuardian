@@ -18,8 +18,13 @@ function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <h1 className="text-2xl font-bold text-qubic-primary">Qubic Token Analyzer</h1>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <img
+                    src="/logoNostromoGuardian.png"
+                    alt="Nostromo Guardian"
+                    className="h-10 w-auto"
+                  />
+                  <h1 className="text-2xl font-bold text-qubic-primary">Nostromo Guardian</h1>
                 </div>
                 <div className="ml-10 flex items-baseline space-x-4">
                   <Link
@@ -102,7 +107,7 @@ function App() {
         <footer className="bg-qubic-gray border-t border-gray-700 mt-12">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <p className="text-center text-gray-400 text-sm">
-              Qubic Token Analyzer - Advanced on-chain analytics for the Qubic ecosystem
+              Nostromo Guardian - Advanced on-chain analytics for the Qubic ecosystem
             </p>
           </div>
         </footer>

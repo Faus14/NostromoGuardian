@@ -13,9 +13,9 @@ function sleep(ms: number) {
 }
 
 async function main() {
-  console.log('='.repeat(80));
-  console.log('QUBIC QUERY SEED LOOP');
-  console.log('='.repeat(80));
+console.log('='.repeat(80));
+console.log('NOSTROMO GUARDIAN - QUERY SEED LOOP');
+console.log('='.repeat(80));
   console.log(`Interval: ${intervalMs} ms`);
   console.log(`Target trades per run: ${targetPerRun}`);
   console.log('Ctrl+C to stop');

@@ -10,7 +10,7 @@ import { config } from '../config';
 
 async function main() {
   console.log('='.repeat(70));
-  console.log('QUBIC TOKEN ANALYZER - INDEXER');
+  console.log('NOSTROMO GUARDIAN - INDEXER');
   console.log('='.repeat(70));
   console.log(`RPC Endpoint: ${config.qubic.rpc.active}`);
   console.log(`QX Contract: ${config.qubic.qx.contractAddress}`);

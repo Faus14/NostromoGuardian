@@ -10,7 +10,7 @@ import { QueryAPISeeder } from '../indexer/query-api-seeder';
  */
 
 console.log('='.repeat(70));
-console.log('QUBIC TOKEN ANALYZER - API SERVER');
+console.log('NOSTROMO GUARDIAN - API SERVER');
 console.log('='.repeat(70));
 console.log(`Host: ${config.api.host}`);
 console.log(`Port: ${config.api.port}`);
