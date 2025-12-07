@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import type { Trade, Holder } from '../services/api';
 import { Search, TrendingUp, TrendingDown } from 'lucide-react';
@@ -9,28 +10,50 @@ export default function AddressLookup() {
   const [holdings, setHoldings] = useState<Holder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  const fetchAddressData = useCallback(
+    async (addr: string) => {
+      if (!addr) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        setHasSearched(true);
+        const [tradesData, holdingsData] = await Promise.all([
+          api.getAddressTrades(addr),
+          api.getAddressHoldings(addr),
+        ]);
+        setTrades(tradesData);
+        setHoldings(holdingsData);
+      } catch (err: any) {
+        setError(err.response?.data?.error || err.message || 'Failed to fetch address data');
+        setTrades([]);
+        setHoldings([]);
+        setHasSearched(true);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const [tradesData, holdingsData] = await Promise.all([
-        api.getAddressTrades(address),
-        api.getAddressHoldings(address),
-      ]);
-      setTrades(tradesData);
-      setHoldings(holdingsData);
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to fetch address data');
-      setTrades([]);
-      setHoldings([]);
-    } finally {
-      setLoading(false);
-    }
+    fetchAddressData(address);
   };
+
+  const paramAddress = searchParams.get('address') || '';
+
+  useEffect(() => {
+    if (paramAddress) {
+      setAddress(paramAddress);
+      fetchAddressData(paramAddress);
+    }
+    // Only re-run when the query value itself changes
+  }, [paramAddress, fetchAddressData]);
 
   const totalBought = trades
     .filter((t) => t.tradeType === 'BUY')
@@ -70,6 +93,13 @@ export default function AddressLookup() {
       {error && (
         <div className="bg-red-900/20 border border-red-500 rounded-lg p-4">
           <p className="text-red-500">{error}</p>
+        </div>
+      )}
+
+      {/* Empty state after search */}
+      {hasSearched && !error && trades.length === 0 && holdings.length === 0 && (
+        <div className="bg-qubic-gray rounded-lg p-6 border border-gray-700 text-center text-gray-300">
+          No activity found for this address yet.
         </div>
       )}
 
@@ -123,7 +153,7 @@ export default function AddressLookup() {
                       <tr key={`${holding.tokenIssuer}-${holding.tokenName}`} className="border-b border-gray-700">
                         <td className="py-2 text-white font-semibold">{holding.tokenName}</td>
                         <td className="py-2 text-white">{(parseInt(holding.balance) / 1e9).toFixed(2)}</td>
-                        <td className="py-2 text-qubic-primary">{holding.percentage.toFixed(2)}%</td>
+                        <td className="py-2 text-qubic-primary">{Number(holding.percentage).toFixed(2)}%</td>
                         <td className="py-2 text-green-500">{holding.buyCount}</td>
                         <td className="py-2 text-red-500">{holding.sellCount}</td>
                       </tr>

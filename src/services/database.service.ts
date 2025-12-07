@@ -17,15 +17,26 @@ export class DatabaseService {
   private pool: Pool;
 
   constructor() {
+    // Prefer DATABASE_URL (needed in Railway/production); fall back to discrete env vars.
+    const useSsl = process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production';
+    const baseConfig = config.database.url
+      ? {
+          connectionString: config.database.url,
+        }
+      : {
+          host: config.database.host,
+          port: config.database.port,
+          database: config.database.name,
+          user: config.database.user,
+          password: config.database.password,
+        };
+
     this.pool = new Pool({
-      host: config.database.host,
-      port: config.database.port,
-      database: config.database.name,
-      user: config.database.user,
-      password: config.database.password,
+      ...baseConfig,
       max: 20, // Maximum number of clients in pool
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
     });
 
     this.pool.on('error', (err) => {
@@ -384,9 +395,9 @@ export class DatabaseService {
       tokenName: row.token_name,
       tradeType: row.trade_type,
       trader: row.trader,
-      price: BigInt(row.price),
-      amount: BigInt(row.amount),
-      totalValue: BigInt(row.total_value),
+      price: row.price.toString(),
+      amount: row.amount.toString(),
+      totalValue: row.total_value.toString(),
       pricePerUnit: row.price_per_unit,
     };
   }
@@ -426,3 +437,23 @@ export function getDatabase(): DatabaseService {
   }
   return dbInstance;
 }
+
+// Export pool directly for simple queries
+const useSsl = process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production';
+const baseConfig = config.database.url
+  ? { connectionString: config.database.url }
+  : {
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      user: config.database.user,
+      password: config.database.password,
+    };
+
+export const pool = new Pool({
+  ...baseConfig,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+});

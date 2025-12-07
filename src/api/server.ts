@@ -5,14 +5,53 @@ import { getDatabase } from '../services/database.service';
 import { getAnalyticsEngine } from '../analytics/engine';
 import { getRPCService } from '../services/rpc.service';
 import { APIResponse, PaginatedResponse, TokenAnalytics } from '../types';
+import { getRecentEvents, getWhaleAlerts, triggerBadgeUnlock, triggerMilestone } from './events';
+import { getTopTraders, getWhaleHunters } from './leaderboard';
+import { getAirdropEligible, getDiamondHands } from './airdrops';
+import { 
+  registerWebhook, 
+  listWebhooks, 
+  unregisterWebhook, 
+  updateWebhook, 
+  testWebhook 
+} from './webhooks';
+import { exportHolders, exportTrades, exportLeaderboard } from './exports';
+import { 
+  createAlert,
+  listAlerts,
+  getAlert,
+  updateAlert,
+  deleteAlert,
+  testAlert,
+} from './alerts';
+import { startAlertEngine } from '../services/alert-engine.service';
+import aiRoutes from './ai';
 
 const app = express();
 const db = getDatabase();
 const analytics = getAnalyticsEngine();
 const rpc = getRPCService();
 
-// Middleware
-app.use(cors({ origin: config.api.corsOrigin }));
+// Middleware - CORS (allow configured origin + local dev)
+const allowedOrigins = [
+  config.api.corsOrigin,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow same-origin / curl
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.use(express.json());
 
 // Request logging middleware
@@ -61,8 +100,46 @@ app.get('/api/v1/status', async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// AI ENDPOINTS (GPT-4 Powered)
+// ============================================================================
+app.use('/api/v1/ai', aiRoutes);
+
+// ============================================================================
 // TOKEN ANALYTICS ENDPOINTS (Live Tree - Real Data)
 // ============================================================================
+
+/**
+ * GET /api/v1/tokens/list
+ * Get list of all tokens with trade counts for dropdown
+ */
+app.get('/api/v1/tokens/list', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        token_name,
+        token_issuer,
+        COUNT(*) as trade_count
+      FROM trades
+      GROUP BY token_name, token_issuer
+      ORDER BY trade_count DESC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        name: row.token_name,
+        issuer: row.token_issuer,
+        tradeCount: parseInt(row.trade_count)
+      }))
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching token list:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 /**
  * GET /api/v1/tokens/example
@@ -393,7 +470,22 @@ app.get('/api/v1/addresses/:address/holdings', async (req: Request, res: Respons
 
     // Query all tokens where this address has balance > 0
     const result = await db.query(
-      `SELECT * FROM holders WHERE address = $1 AND balance > 0 ORDER BY balance DESC`,
+      `SELECT 
+        token_issuer,
+        token_name,
+        address,
+        balance::text as balance,
+        percentage,
+        buy_count,
+        sell_count,
+        total_bought::text as total_bought,
+        total_sold::text as total_sold,
+        first_seen_tick,
+        last_activity_tick,
+        is_whale
+      FROM holders 
+      WHERE address = $1 AND balance > 0 
+      ORDER BY balance DESC`,
       [address]
     );
 
@@ -432,6 +524,44 @@ function getGrowthInterpretation(score: number): string {
 }
 
 // ============================================================================
+// EASYCONNECT INTEGRATION ENDPOINTS
+// ============================================================================
+
+// Events & Alerts
+app.get('/api/v1/events/recent', getRecentEvents);
+app.get('/api/v1/events/whale-alerts', getWhaleAlerts);
+app.post('/api/v1/events/badge-unlock', triggerBadgeUnlock);
+app.post('/api/v1/events/milestone-reached', triggerMilestone);
+
+// Gamification & Community
+app.get('/api/v1/leaderboard/traders', getTopTraders);
+app.get('/api/v1/leaderboard/whale-hunters', getWhaleHunters);
+
+// Airdrop Automation
+app.get('/api/v1/airdrops/eligible', getAirdropEligible);
+app.get('/api/v1/airdrops/diamond-hands', getDiamondHands);
+
+// Webhooks Management
+app.post('/api/v1/webhooks/register', registerWebhook);
+app.get('/api/v1/webhooks/list', listWebhooks);
+app.delete('/api/v1/webhooks/:id', unregisterWebhook);
+app.patch('/api/v1/webhooks/:id', updateWebhook);
+app.post('/api/v1/webhooks/:id/test', testWebhook);
+
+// Alert Engine
+app.post('/api/v1/alerts', createAlert);
+app.get('/api/v1/alerts', listAlerts);
+app.get('/api/v1/alerts/:id', getAlert);
+app.patch('/api/v1/alerts/:id', updateAlert);
+app.delete('/api/v1/alerts/:id', deleteAlert);
+app.post('/api/v1/alerts/:id/test', testAlert);
+
+// Data Exports (CSV/JSON)
+app.get('/api/v1/exports/holders', exportHolders);
+app.get('/api/v1/exports/trades', exportTrades);
+app.get('/api/v1/exports/leaderboard', exportLeaderboard);
+
+// ============================================================================
 // ERROR HANDLING
 // ============================================================================
 
@@ -462,6 +592,32 @@ export function startAPIServer(): void {
     console.log(`  - GET  /api/v1/tokens/:issuer/:name/growth-score`);
     console.log(`  - GET  /api/v1/addresses/:address/trades`);
     console.log(`  - GET  /api/v1/addresses/:address/holdings`);
+    console.log(`\n🔗 EasyConnect Integration:`);
+    console.log(`  - GET  /api/v1/events/recent`);
+    console.log(`  - GET  /api/v1/events/whale-alerts`);
+    console.log(`  - GET  /api/v1/leaderboard/traders`);
+    console.log(`  - GET  /api/v1/leaderboard/whale-hunters`);
+    console.log(`  - GET  /api/v1/airdrops/eligible?token=QMINE`);
+    console.log(`  - GET  /api/v1/airdrops/diamond-hands?token=QMINE`);
+    console.log(`\n📢 Webhooks (Make/Zapier/n8n):`);
+    console.log(`  - POST   /api/v1/webhooks/register`);
+    console.log(`  - GET    /api/v1/webhooks/list`);
+    console.log(`  - DELETE /api/v1/webhooks/:id`);
+    console.log(`  - PATCH  /api/v1/webhooks/:id`);
+    console.log(`  - POST   /api/v1/webhooks/:id/test`);
+    console.log(`\n⚠️  Alert Engine (Rules-as-a-Service):`);
+    console.log(`  - POST   /api/v1/alerts`);
+    console.log(`  - GET    /api/v1/alerts`);
+    console.log(`  - GET    /api/v1/alerts/:id`);
+    console.log(`  - PATCH  /api/v1/alerts/:id`);
+    console.log(`  - DELETE /api/v1/alerts/:id`);
+    console.log(`  - POST   /api/v1/alerts/:id/test`);
+    console.log(`\n📊 Data Exports (Google Sheets/Excel):`);
+    console.log(`  - GET    /api/v1/exports/holders?token=QMINE&format=csv`);
+    console.log(`  - GET    /api/v1/exports/trades?period=7d&format=json`);
+    console.log(`  - GET    /api/v1/exports/leaderboard?format=csv`);
+
+    startAlertEngine();
   });
 }
 

@@ -1,0 +1,194 @@
+{
+  "name": "Auto-Airdrop Based on Token Holders",
+  "description": "Automatically reward users when a token reaches holder milestones",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "nostromo-holders-webhook"
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "expect": [
+          {
+            "name": "event_type",
+            "type": "text",
+            "label": "Event Type"
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "spec": [
+              {
+                "name": "token_id",
+                "type": "text"
+              },
+              {
+                "name": "token_name",
+                "type": "text"
+              },
+              {
+                "name": "holder_count",
+                "type": "number"
+              },
+              {
+                "name": "milestone",
+                "type": "number"
+              },
+              {
+                "name": "holders",
+                "type": "array",
+                "spec": {
+                  "type": "collection",
+                  "spec": [
+                    {
+                      "name": "address",
+                      "type": "text"
+                    },
+                    {
+                      "name": "balance",
+                      "type": "number"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "telegram:sendMessage",
+              "version": 3,
+              "parameters": {
+                "connection": "telegram-bot"
+              },
+              "filter": {
+                "name": "Milestone: 100 Holders",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.milestone}}",
+                      "b": "100",
+                      "o": "number:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "chatId": "-1001234567890",
+                "text": "🎉 *Milestone Reached!*\n\n${1.data.token_name} just hit *{{1.data.holder_count}} holders*!\n\nReward: Every holder gets 1,000 bonus tokens! 🎁",
+                "parse_mode": "Markdown"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -100 }
+              }
+            },
+            {
+              "id": 4,
+              "module": "google-sheets:addRow",
+              "version": 4,
+              "parameters": {
+                "spreadsheet": "airdrop-log"
+              },
+              "mapper": {
+                "sheetId": "Sheet1",
+                "values": {
+                  "0": "{{now}}",
+                  "1": "{{1.data.token_id}}",
+                  "2": "{{1.data.token_name}}",
+                  "3": "{{1.data.holder_count}}",
+                  "4": "100 Holders Milestone",
+                  "5": "1000 tokens per holder"
+                }
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": -100 }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "telegram:sendMessage",
+              "version": 3,
+              "parameters": {
+                "connection": "telegram-bot"
+              },
+              "filter": {
+                "name": "Milestone: 500 Holders",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.milestone}}",
+                      "b": "500",
+                      "o": "number:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "chatId": "-1001234567890",
+                "text": "🚀 *HUGE Milestone!*\n\n${1.data.token_name} now has *{{1.data.holder_count}} holders*!\n\nSpecial Reward: 5,000 bonus tokens + NFT badge! 🏆",
+                "parse_mode": "Markdown"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 100 }
+              }
+            },
+            {
+              "id": 6,
+              "module": "airtable:createRecord",
+              "version": 3,
+              "parameters": {
+                "base": "airdrop-tracker",
+                "table": "Rewards"
+              },
+              "mapper": {
+                "fields": {
+                  "Token": "{{1.data.token_name}}",
+                  "Milestone": "500 Holders",
+                  "Holders": "{{1.data.holder_count}}",
+                  "Reward": "5000 tokens + NFT",
+                  "Date": "{{now}}"
+                }
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": 100 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": false
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}

@@ -1,0 +1,284 @@
+{
+  "name": "Gamification System → Discord Rewards",
+  "description": "Send congratulations to Discord when users unlock achievements and badges",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "nostromo-achievement-webhook"
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "expect": [
+          {
+            "name": "event_type",
+            "type": "text",
+            "label": "Event Type"
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "spec": [
+              {
+                "name": "user_address",
+                "type": "text"
+              },
+              {
+                "name": "badge_id",
+                "type": "text"
+              },
+              {
+                "name": "badge_name",
+                "type": "text"
+              },
+              {
+                "name": "badge_emoji",
+                "type": "text"
+              },
+              {
+                "name": "rarity",
+                "type": "text"
+              },
+              {
+                "name": "description",
+                "type": "text"
+              },
+              {
+                "name": "rank",
+                "type": "number"
+              },
+              {
+                "name": "total_volume",
+                "type": "number"
+              },
+              {
+                "name": "trade_count",
+                "type": "number"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "discord:createAMessage",
+              "version": 1,
+              "parameters": {
+                "webhook": "discord-webhook"
+              },
+              "filter": {
+                "name": "Legendary Badges",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.rarity}}",
+                      "b": "legendary",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "content": "@everyone",
+                "embeds": [
+                  {
+                    "title": "🏆 LEGENDARY ACHIEVEMENT UNLOCKED!",
+                    "description": "**{{substring(1.data.user_address; 0; 15)}}...** just earned the legendary badge!",
+                    "color": "16766720",
+                    "fields": [
+                      {
+                        "name": "{{1.data.badge_emoji}} Badge",
+                        "value": "**{{1.data.badge_name}}**",
+                        "inline": true
+                      },
+                      {
+                        "name": "🎖️ Rarity",
+                        "value": "**LEGENDARY**",
+                        "inline": true
+                      },
+                      {
+                        "name": "📊 Description",
+                        "value": "{{1.data.description}}",
+                        "inline": false
+                      },
+                      {
+                        "name": "📈 Stats",
+                        "value": "Rank: #{{1.data.rank}}\nVolume: {{formatNumber(1.data.total_volume; 0; ','; '.')}} QU\nTrades: {{1.data.trade_count}}",
+                        "inline": false
+                      }
+                    ],
+                    "thumbnail": {
+                      "url": "https://cdn.qubic.org/badges/legendary.gif"
+                    },
+                    "footer": {
+                      "text": "Nostromo Guardian • Gamification System"
+                    },
+                    "timestamp": "{{now}}"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -150 }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 4,
+              "module": "discord:createAMessage",
+              "version": 1,
+              "parameters": {
+                "webhook": "discord-webhook"
+              },
+              "filter": {
+                "name": "Epic Badges",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.rarity}}",
+                      "b": "epic",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "embeds": [
+                  {
+                    "title": "💜 Epic Achievement!",
+                    "description": "`{{substring(1.data.user_address; 0; 20)}}...` earned **{{1.data.badge_emoji}} {{1.data.badge_name}}**",
+                    "color": "10181046",
+                    "fields": [
+                      {
+                        "name": "Description",
+                        "value": "{{1.data.description}}",
+                        "inline": false
+                      }
+                    ],
+                    "footer": {
+                      "text": "Nostromo Guardian"
+                    }
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -50 }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "telegram:sendMessage",
+              "version": 3,
+              "parameters": {
+                "connection": "telegram-bot"
+              },
+              "filter": {
+                "name": "Top 10 Rank Achievement",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.rank}}",
+                      "b": "10",
+                      "o": "number:lessOrEqual"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "chatId": "-1001234567890",
+                "text": "🎯 *Top 10 Trader Alert!*\n\n`{{substring(1.data.user_address; 0; 15)}}...` just entered the *TOP {{1.data.rank}}* leaderboard!\n\n{{1.data.badge_emoji}} Badge: *{{1.data.badge_name}}*\n💰 Volume: *{{formatNumber(1.data.total_volume; 0; ','; '.')}} QU*\n📊 Trades: *{{1.data.trade_count}}*",
+                "parse_mode": "Markdown"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 50 }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "module": "twitter:createATweet",
+              "version": 1,
+              "parameters": {
+                "connection": "twitter-bot"
+              },
+              "filter": {
+                "name": "Whale Master Badge",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.badge_id}}",
+                      "b": "whale",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "text": "🐋 New Whale Master on @Qubic_network!\n\n{{substring(1.data.user_address; 0; 12)}}... just unlocked the legendary Whale Master badge 🏆\n\n💰 Total Volume: {{formatNumber(1.data.total_volume; 0; ','; '.')}} $QU\n\n#Qubic #DeFi #WhaleAlert"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 150 }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "module": "google-sheets:addRow",
+      "version": 4,
+      "parameters": {
+        "spreadsheet": "achievement-log",
+        "sheetId": "Badges"
+      },
+      "mapper": {
+        "values": {
+          "0": "{{now}}",
+          "1": "{{1.data.user_address}}",
+          "2": "{{1.data.badge_name}}",
+          "3": "{{1.data.rarity}}",
+          "4": "{{1.data.rank}}",
+          "5": "{{1.data.total_volume}}",
+          "6": "{{1.data.trade_count}}"
+        }
+      },
+      "metadata": {
+        "designer": { "x": 900, "y": 0 }
+      }
+    }
+  ],
+  "metadata": {
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": false
+    }
+  }
+}

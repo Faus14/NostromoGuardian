@@ -2,6 +2,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+function parsePort(value: string | undefined, fallback: number): number {
+  const num = value ? parseInt(value, 10) : NaN;
+  if (Number.isFinite(num)) return num;
+  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
+  return Number.isFinite(envPort) ? envPort : fallback;
+}
+
 export const config = {
   database: {
     url: process.env.DATABASE_URL || '',
@@ -34,7 +41,7 @@ export const config = {
   },
   
   api: {
-    port: parseInt(process.env.API_PORT || '3000'),
+    port: parsePort(process.env.API_PORT, 3000),
     host: process.env.API_HOST || '0.0.0.0',
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   },

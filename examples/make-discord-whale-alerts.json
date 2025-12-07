@@ -1,0 +1,62 @@
+{
+  "name": "Nostromo Guardian - Whale Alerts to Discord",
+  "description": "Receive instant Discord notifications when whales buy or sell QMINE",
+  "platform": "Make.com",
+  "modules": [
+    {
+      "id": 1,
+      "module": "webhooks:CustomWebhook",
+      "version": 1,
+      "parameters": {
+        "hook_name": "nostromo_whale_alerts"
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "discord:CreateMessage",
+      "version": 3,
+      "parameters": {
+        "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL"
+      },
+      "mapper": {
+        "content": "🐋 **Whale Alert!**\n\n**Event:** {{1.event}}\n**Token:** {{1.data.token}}\n**Trader:** {{substring(1.data.trader; 0; 12)}}...{{substring(1.data.trader; -12)}}\n**Amount:** {{formatNumber(1.data.amount; 0; ','; '.')}}\n**Value:** {{formatNumber(1.data.total_value; 0; ','; '.')}} QUBIC\n**Tick:** {{1.data.tick}}\n\n[View Transaction](https://explorer.qubic.org/network/tick/{{1.data.tick}})"
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "webhookUrl": {
+              "mode": "edit",
+              "label": "Discord Webhook"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}

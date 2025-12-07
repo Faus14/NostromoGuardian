@@ -3,26 +3,27 @@ import { IntelligentSeeder } from './intelligent-seeder';
 /**
  * Entry point for intelligent seeder
  * Uses activity scanner to find REAL QX data (no mocks!)
- * 
+ *
  * Usage: npm run intelligent-seed
  */
 
 async function main() {
-  console.log('╔═══════════════════════════════════════════════════╗');
-  console.log('║     QUBIC TOKEN ANALYZER - INTELLIGENT SEEDER     ║');
-  console.log('║          Real Data Only - No Mocks! 🎯            ║');
-  console.log('╚═══════════════════════════════════════════════════╝\n');
+  console.log('='.repeat(70));
+  console.log('NOSTROMO GUARDIAN - INTELLIGENT SEEDER');
+  console.log('Real Data Only - No Mocks!');
+  console.log('='.repeat(70));
+  console.log();
 
   const seeder = new IntelligentSeeder();
 
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.log('\n\n⚠️  Shutdown signal received...');
+    console.log('\n\n[Seeder] Shutdown signal received...');
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\n\n⚠️  Termination signal received...');
+    console.log('\n\n[Seeder] Termination signal received...');
     process.exit(0);
   });
 
@@ -30,7 +31,7 @@ async function main() {
     await seeder.seed();
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Seeder failed:', error);
+    console.error('\n[Seeder] Seeder failed:', error);
     process.exit(1);
   }
 }
